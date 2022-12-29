@@ -88,6 +88,10 @@ int main(void)
     int recX = 0;
     bool collide = false;
 
+
+    
+    bool isSelecting = false;
+    int selected;
    
 
     //initialize objectR array
@@ -104,45 +108,14 @@ int main(void)
         objectR[i].isExist = false;
     }
 
-    //Test add object
-    //addObjectRect(objectR);
-    bool foundEmptySlot = false;
-    int emptySlot;
-
-    //find empty spot
-    // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-    // {
-    //     if(!objectR[i].isExist)
-    //     {
-    //         emptySlot = 0;
-    //         foundEmptySlot = true;
-    //     }
-    // }
-
-    // if(foundEmptySlot)
-    // {
-    //     objectR[emptySlot].isExist = true;
-    //     objectR[emptySlot].rect.height = 100;
-    //     objectR[emptySlot].rect.width = 100;
-    //     objectR[emptySlot].rect.x = 100;
-    //     objectR[emptySlot].rect.x = 100;
-    //     objectR[emptySlot].isSelected = 0;
-    // }
-
-    objectR[0].isExist = true;
-    objectR[0].rect.height = 100;
-    objectR[0].rect.width = 100;
-    objectR[0].rect.x = 100;
-    objectR[0].rect.x = 100;
-    objectR[0].isSelected = 0;
-
+   
     int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
 
    Camera2D camera = { 0 };
     camera.target = player.position;
-    //camera.target = (Vector2){0, 0 };
+   
     camera.offset = (Vector2){screenWidth/2.0f, screenHeight/2.0f };
-   //camera.offset = (Vector2){ 0, 0 };
+   
     camera.rotation = 0.0f;
     camera.zoom = 1;
 
@@ -256,32 +229,31 @@ int main(void)
         }
         
         //Add objects
-//
-        // if (IsKeyPressed(KEY_E))
-        // {
-        //     bool foundEmptySlot = false;
-        //     int emptySlot;
-//
-        //     //find empty spot
-        //     for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-        //     {
-        //         if(!objectR[i].isExist)
-        //         {
-        //             emptySlot = 0;
-        //             foundEmptySlot = true;
-        //         }
-        //     }
-//
-        //     if(foundEmptySlot)
-        //     {
-        //         objectR[emptySlot].isExist = true;
-        //         objectR[emptySlot].rect.height = 1000;
-        //         objectR[emptySlot].rect.width = 1000;
-        //         objectR[emptySlot].rect.x = 100;
-        //         objectR[emptySlot].rect.x = 100;
-        //         objectR[emptySlot].isSelected = 0;
-        //     }
-        // }
+        if (IsKeyPressed(KEY_E))
+        {
+            bool foundEmptySlot = false;
+            int emptySlot;
+
+            //find empty spot
+            for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+            {
+                if(!objectR[i].isExist)
+                {
+                    emptySlot = i;
+                    foundEmptySlot = true;
+                }
+            }
+
+            if(foundEmptySlot)
+            {
+                objectR[emptySlot].isExist = true;
+                objectR[emptySlot].rect.height = 100;
+                objectR[emptySlot].rect.width = 100;
+                objectR[emptySlot].rect.x = 100;
+                objectR[emptySlot].rect.x = 100;
+                objectR[emptySlot].isSelected = 0;
+            }
+        }
 
         mousePosx = GetMousePosition().x;
         recX = objectR[0].rect.x;
@@ -290,46 +262,43 @@ int main(void)
         mousePosition.x = (GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x;
         mousePosition.y = (GetMousePosition().y - camera.offset.y)/camera.zoom + camera.target.y;
 
-
-        if(CheckCollisionPointRec(mousePosition,objectR[0].rect))
-        {
-            objectR[0].isSelected = true;  
-            collide = true;       
-        }
-        // if(CheckCollisionPointRec(mousePosition, objectR[0].rect))
-        // {
-        //     objectR[1].isSelected = true;
-        //     //foundClick = true;
-        // } 
+        
         //Highlight Object
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         {
-            Vector2 mousePosition = GetMousePosition();
             bool foundClick = false;
-             
-
-            
-            // for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
-            // {
-                
-               
-                
-                // if(objectR[i].isExist)
-                // {
-                //     if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
-                //     {
-                //         objectR[i].isSelected = true;
-                //         foundClick = true;
-                //     } 
-                //     else
-                //     {
-                //         //objectR[i].isSelected = false;     
-                //     }
-                // }
-            //}
-            //detect collision with mouse
-
+            if(!isSelecting)
+            {
+                for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+                {
+                    if(objectR[i].isExist)
+                    {
+                        if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
+                        {
+                            objectR[i].isSelected = true;
+                            foundClick = true;
+                            selected = i;
+                            isSelecting = true;
+                        } 
+                    }
+                }
+            }
         }
+
+        //Moving highlighted object
+        if(isSelecting)
+        {
+            objectR[selected].rect.x = mousePosition.x - objectR[selected].rect.width/2  ;
+            objectR[selected].rect.y = mousePosition.y - objectR[selected].rect.height/2 ;
+            
+            if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+            {
+                isSelecting = false;     
+                objectR[selected].isSelected = false;                    
+            }
+        }
+
+    
         
         //Call update camera function by its pointer
         cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
@@ -356,10 +325,8 @@ int main(void)
                         else
                         {
                             DrawRectangleRec(objectR[i].rect,objectR[i].color); 
-                        }
-                        
+                        }    
                     }
-
                 }
 
                 //DrawRectangle(0,0,1280,720,GRAY);
