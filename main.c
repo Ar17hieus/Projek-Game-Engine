@@ -3,9 +3,11 @@
 #include "raygui.h"
 #define RAYGUI_IMPLEMENTATION
 
+
 #define G 400
 #define PLAYER_JUMP_SPD 350.0f
 #define PLAYER_HOR_SPD 200.0f
+#define TOTAL_RECT 10
 
 typedef struct Player {
     Vector2 position;
@@ -13,6 +15,15 @@ typedef struct Player {
     bool canJump;
     bool soundJump;
 } Player;
+
+typedef struct objectRect
+{
+    Rectangle rect;
+    Color color;
+    bool isExist;
+    bool isSelected;
+} objectRect;
+
 
 typedef struct EnvItem {
     Rectangle rect;
@@ -29,6 +40,7 @@ void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envI
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+//void addObjectRect(objectRect *objectR[]);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -37,8 +49,10 @@ int main(void)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenWidth = 1280;
+    const int screenHeight = 720;
+
+   
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera");
     
@@ -66,6 +80,27 @@ int main(void)
         {{ 650, 300, 100, 10 }, 1, GRAY }
     };
 
+
+    objectRect objectR[TOTAL_RECT];
+
+
+    //initialize objectR array
+
+    for(int i = 0; i < TOTAL_RECT; i++)
+    {
+        objectR[i].rect.height = 0;
+        objectR[i].rect.width = 0;
+        objectR[i].rect.x = 0;
+        objectR[i].rect.y = 0;
+
+        objectR[i].color = WHITE;
+        objectR[i].isExist = false;
+        objectR[i].isExist = false;
+    }
+
+    //Test add object
+    //addObjectRect(objectR);
+    
     int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
 
     Camera2D camera = { 0 };
@@ -118,6 +153,7 @@ int main(void)
         }
 
         if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
+        
         
         if (IsKeyDown (KEY_A)) 
         {
@@ -183,7 +219,59 @@ int main(void)
             }
         }
         
+        //Add objects
 
+        if (IsKeyPressed(KEY_E))
+        {
+            bool foundEmptySlot = false;
+            int emptySlot;
+
+            //find empty spot
+            for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+            {
+                if(!objectR[i].isExist)
+                {
+                    emptySlot = 0;
+                    foundEmptySlot = true;
+                }
+            }
+
+            if(foundEmptySlot)
+            {
+                objectR[emptySlot].isExist = true;
+                objectR[emptySlot].rect.height = 100;
+                objectR[emptySlot].rect.width = 100;
+                objectR[emptySlot].rect.x = 0;
+                objectR[emptySlot].rect.x = 0;
+                objectR[emptySlot].isSelected = 0;
+            }
+        }
+
+        //Highlight Object
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            Vector2 mousePosition = GetMousePosition();
+            bool foundClick = false;
+
+            for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+            {
+                if(objectR[i].isExist)
+                {
+                    if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
+                    {
+                        objectR[i].isSelected = true;
+                        foundClick = true;
+                    }
+                    else
+                    {
+                        //objectR[i].isSelected = false;     
+                    }
+                }
+            }
+            //detect collision with mouse
+
+        }
+        
         // Call update camera function by its pointer
         cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
@@ -197,6 +285,23 @@ int main(void)
             BeginMode2D(camera);
 
                 for (int i = 0; i < envItemsLength; i++) DrawRectangleRec(envItems[i].rect, envItems[i].color);
+
+                for(int i = 0; i < TOTAL_RECT; i++)
+                {
+                    if(objectR[i].isExist)
+                    {
+                        if(objectR[i].isSelected)
+                        {
+                            DrawRectangleRec(objectR[i].rect,GREEN);
+                        }
+                        else
+                        {
+                            DrawRectangleRec(objectR[i].rect,objectR[i].color); 
+                        }
+                        
+                    }
+
+                }
 
                 Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
                 DrawRectangleRec(playerRect, RED);
@@ -227,6 +332,30 @@ int main(void)
 
     return 0;
 }
+
+
+// void addObjectRect(objectRect *objectR[])
+// {
+//     bool foundEmptySlot = false;
+//     int emptySlot;
+//     //find empty spot
+//     for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+//     {
+//         if(!objectR[i]->isExist)
+//         {
+//             emptySlot = 0;
+//             foundEmptySlot = true;
+//         }
+//     }
+//     if(foundEmptySlot)
+//     {
+//         objectR[emptySlot]->isExist = true;
+//         objectR[emptySlot]->rect.height = 100;
+//         objectR[emptySlot]->rect.width = 100;
+//         objectR[emptySlot]->rect.x = 0;
+//         objectR[emptySlot]->rect.x = 0;
+//     }
+// }
 
 void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta)
 {
