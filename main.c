@@ -83,6 +83,12 @@ int main(void)
 
     objectRect objectR[TOTAL_RECT];
 
+    //debug
+    int mousePosx = 0;
+    int recX = 0;
+    bool collide = false;
+
+   
 
     //initialize objectR array
 
@@ -100,16 +106,47 @@ int main(void)
 
     //Test add object
     //addObjectRect(objectR);
-    
+    bool foundEmptySlot = false;
+    int emptySlot;
+
+    //find empty spot
+    // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+    // {
+    //     if(!objectR[i].isExist)
+    //     {
+    //         emptySlot = 0;
+    //         foundEmptySlot = true;
+    //     }
+    // }
+
+    // if(foundEmptySlot)
+    // {
+    //     objectR[emptySlot].isExist = true;
+    //     objectR[emptySlot].rect.height = 100;
+    //     objectR[emptySlot].rect.width = 100;
+    //     objectR[emptySlot].rect.x = 100;
+    //     objectR[emptySlot].rect.x = 100;
+    //     objectR[emptySlot].isSelected = 0;
+    // }
+
+    objectR[0].isExist = true;
+    objectR[0].rect.height = 100;
+    objectR[0].rect.width = 100;
+    objectR[0].rect.x = 100;
+    objectR[0].rect.x = 100;
+    objectR[0].isSelected = 0;
+
     int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
 
-    Camera2D camera = { 0 };
+   Camera2D camera = { 0 };
     camera.target = player.position;
-    camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
+    //camera.target = (Vector2){0, 0 };
+    camera.offset = (Vector2){screenWidth/2.0f, screenHeight/2.0f };
+   //camera.offset = (Vector2){ 0, 0 };
     camera.rotation = 0.0f;
-    camera.zoom = 1.0f;
+    camera.zoom = 1;
 
-    // Store pointers to the multiple update camera functions
+    //Store pointers to the multiple update camera functions
     void (*cameraUpdaters[])(Camera2D*, Player*, EnvItem*, int, float, int, int) = {
         UpdateCameraCenter,
         UpdateCameraCenterInsideMap,
@@ -141,7 +178,7 @@ int main(void)
 
         UpdatePlayer(&player, envItems, envItemsLength, deltaTime);
 
-        camera.zoom += ((float)GetMouseWheelMove()*0.05f);
+         camera.zoom += ((float)GetMouseWheelMove()*0.05f);
 
         if (camera.zoom > 3.0f) camera.zoom = 3.0f;
         else if (camera.zoom < 0.25f) camera.zoom = 0.25f;
@@ -153,7 +190,6 @@ int main(void)
         }
 
         if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
-        
         
         if (IsKeyDown (KEY_A)) 
         {
@@ -220,59 +256,82 @@ int main(void)
         }
         
         //Add objects
+//
+        // if (IsKeyPressed(KEY_E))
+        // {
+        //     bool foundEmptySlot = false;
+        //     int emptySlot;
+//
+        //     //find empty spot
+        //     for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+        //     {
+        //         if(!objectR[i].isExist)
+        //         {
+        //             emptySlot = 0;
+        //             foundEmptySlot = true;
+        //         }
+        //     }
+//
+        //     if(foundEmptySlot)
+        //     {
+        //         objectR[emptySlot].isExist = true;
+        //         objectR[emptySlot].rect.height = 1000;
+        //         objectR[emptySlot].rect.width = 1000;
+        //         objectR[emptySlot].rect.x = 100;
+        //         objectR[emptySlot].rect.x = 100;
+        //         objectR[emptySlot].isSelected = 0;
+        //     }
+        // }
 
-        if (IsKeyPressed(KEY_E))
+        mousePosx = GetMousePosition().x;
+        recX = objectR[0].rect.x;
+
+        Vector2 mousePosition;
+        mousePosition.x = (GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x;
+        mousePosition.y = (GetMousePosition().y - camera.offset.y)/camera.zoom + camera.target.y;
+
+
+        if(CheckCollisionPointRec(mousePosition,objectR[0].rect))
         {
-            bool foundEmptySlot = false;
-            int emptySlot;
-
-            //find empty spot
-            for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-            {
-                if(!objectR[i].isExist)
-                {
-                    emptySlot = 0;
-                    foundEmptySlot = true;
-                }
-            }
-
-            if(foundEmptySlot)
-            {
-                objectR[emptySlot].isExist = true;
-                objectR[emptySlot].rect.height = 100;
-                objectR[emptySlot].rect.width = 100;
-                objectR[emptySlot].rect.x = 0;
-                objectR[emptySlot].rect.x = 0;
-                objectR[emptySlot].isSelected = 0;
-            }
+            objectR[0].isSelected = true;  
+            collide = true;       
         }
-
+        // if(CheckCollisionPointRec(mousePosition, objectR[0].rect))
+        // {
+        //     objectR[1].isSelected = true;
+        //     //foundClick = true;
+        // } 
         //Highlight Object
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             Vector2 mousePosition = GetMousePosition();
             bool foundClick = false;
+             
 
-            for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
-            {
-                if(objectR[i].isExist)
-                {
-                    if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
-                    {
-                        objectR[i].isSelected = true;
-                        foundClick = true;
-                    }
-                    else
-                    {
-                        //objectR[i].isSelected = false;     
-                    }
-                }
-            }
+            
+            // for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+            // {
+                
+               
+                
+                // if(objectR[i].isExist)
+                // {
+                //     if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
+                //     {
+                //         objectR[i].isSelected = true;
+                //         foundClick = true;
+                //     } 
+                //     else
+                //     {
+                //         //objectR[i].isSelected = false;     
+                //     }
+                // }
+            //}
             //detect collision with mouse
 
         }
         
-        // Call update camera function by its pointer
+        //Call update camera function by its pointer
         cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
 
@@ -303,10 +362,13 @@ int main(void)
 
                 }
 
+                //DrawRectangle(0,0,1280,720,GRAY);
+                DrawCircle((GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x ,(GetMousePosition().y - camera.offset.y)/camera.zoom +camera.target.y,5,RED);
+
                 Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
                 DrawRectangleRec(playerRect, RED);
 
-            EndMode2D();
+           EndMode2D();
 
             DrawText("Controls:", 20, 20, 10, BLACK);
             DrawText("- Right/Left to move", 40, 40, 10, DARKGRAY);
@@ -320,6 +382,15 @@ int main(void)
             DrawText("Press S for Sound S", 620, 60, 10, DARKGRAY);
             DrawText("Press D for Sound D", 620, 80, 10, DARKGRAY);
             DrawText("Press F for Sound F", 620, 100, 10, DARKGRAY);
+
+            //debug
+            DrawText(TextFormat("Integer value: %d", mousePosx), 620, 130, 10, DARKGRAY);
+            DrawText(TextFormat("Integer value: %d", recX), 620, 160, 10, DARKGRAY);
+
+            if(collide)
+            {
+                DrawText(TextFormat("COLLIDE"), 620, 180, 10, DARKGRAY);    
+            }
 
         EndDrawing();
         //----------------------------------------------------------------------------------
