@@ -67,6 +67,8 @@ int main(void)
     bool bong = false;
     bool cock = false;
     bool dick = false;
+    
+    Color boxColour;
 
     Player player = { 0 };
     player.position = (Vector2){ 400, 280 };
@@ -334,9 +336,17 @@ int main(void)
 
                 Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
                 DrawRectangleRec(playerRect, RED);
+                
+                //guiTest
+                //DrawRectangle(400, 240, 40, 40, boxColour);
+                
+                //alpha color untuk added Box
+                //boxColour.a = 255;
 
            EndMode2D();
 
+            //GUI
+            
             DrawText("Controls:", 20, 20, 10, BLACK);
             DrawText("- Right/Left to move", 40, 40, 10, DARKGRAY);
             DrawText("- Space to jump", 40, 60, 10, DARKGRAY);
@@ -344,12 +354,53 @@ int main(void)
             DrawText("- C to change camera mode", 40, 100, 10, DARKGRAY);
             DrawText("Current camera mode:", 20, 120, 10, BLACK);
             DrawText(cameraDescriptions[cameraOption], 40, 140, 10, DARKGRAY);
-            DrawText("Sound:", 600,20,10, BLACK);
-            DrawText("Press A for Sound A", 620, 40, 10, DARKGRAY);
-            DrawText("Press S for Sound S", 620, 60, 10, DARKGRAY);
-            DrawText("Press D for Sound D", 620, 80, 10, DARKGRAY);
-            DrawText("Press F for Sound F", 620, 100, 10, DARKGRAY);
-
+            
+            //Sound
+            DrawText("Sound:", 820,20,10, BLACK);
+            DrawText("Press A for Sound A", 840, 40, 10, DARKGRAY);
+            DrawText("Press S for Sound S", 840, 70, 10, DARKGRAY);
+            DrawText("Press D for Sound D", 840, 100, 10, DARKGRAY);
+            DrawText("Press F for Sound F", 840, 130, 10, DARKGRAY);
+            
+            //Toggle
+            if (albert)
+            {
+                DrawText("Press A for Sound A", 840, 40, 10, RED);
+            }
+            else if (bong)
+            {
+                DrawText("Press S for Sound S", 840, 70, 10, RED);
+            }
+            else if (cock)
+            {
+                DrawText("Press D for Sound D", 840, 100, 10, RED);
+            }
+            else if (dick)
+            {
+                DrawText("Press F for Sound F", 840, 130, 10, RED);
+            }
+            
+            DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
+            
+            /*
+            //Set Color
+            parametersBox color R 
+            boxColour.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", "", boxColour.r, 0, 255);
+            
+            parametersBox color G 
+            boxColour.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", boxColour.g, 0, 255);
+            
+            parametersBox color B 
+            boxColour.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", boxColour.b, 0, 255);
+            
+            //Add Box
+            function add box = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
+            
+            //Change Size
+            parametersBox x = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, cubeSize.x, 0, 10);
+            parametersBox y = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, cubeSize.y, 0, 10);
+            */
+            
             //debug
             DrawText(TextFormat("Integer value: %d", mousePosx), 620, 130, 10, DARKGRAY);
             DrawText(TextFormat("Integer value: %d", recX), 620, 160, 10, DARKGRAY);
