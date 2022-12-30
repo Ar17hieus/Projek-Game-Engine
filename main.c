@@ -338,13 +338,14 @@ int main(void)
         if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
             isOpenProperty = false;   
-
+            bool found = false;
             for(int i = 0; i <TOTAL_OBJECT ; i++ )
             {
                 objectR[i].isSelected = false; 
                 objectC[i].isSelected = false; 
+                
                 //Highlight Rectangle
-                if(objectR[i].isExist && objectR[i].canBeEdited)
+                if(objectR[i].isExist && objectR[i].canBeEdited && !found)
                 {
                     if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
                     {
@@ -352,6 +353,7 @@ int main(void)
                         objectR[i].isSelected = true;
                         isOpenProperty = true;
                         selectedType = 0;
+                        found = true;
                     }
                     else
                     {
@@ -359,7 +361,7 @@ int main(void)
                     } 
                 }
                 //Highlight Circle
-                else if(objectR[i].isExist)
+                else if(objectR[i].isExist && !found) 
                 {
                     if(CheckCollisionPointCircle(mousePosition, objectC[i].center, objectC[i].radius) )
                     {
@@ -367,6 +369,7 @@ int main(void)
                         objectC[i].isSelected = true;
                         isOpenProperty = true;
                         selectedType = 1;
+                        found = true;
                     } 
                     else
                     {
@@ -481,7 +484,6 @@ int main(void)
                 DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
                 //Set Color
                  
-                
                 //Rectangle Properties
                 if(selectedType == 0)
                 {
