@@ -10,6 +10,7 @@
 	},
 	"files.associations": {
 		"raygui.h": "c",
-		"*.m": "c"
+		"*.m": "c",
+		"random": "c"
 	}
 }

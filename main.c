@@ -7,7 +7,8 @@
 #define G 400
 #define PLAYER_JUMP_SPD 350.0f
 #define PLAYER_HOR_SPD 200.0f
-#define TOTAL_RECT 10
+#define TOTAL_OBJECT 20
+
 
 typedef struct Player {
     Rectangle rect;
@@ -26,6 +27,16 @@ typedef struct objectRect
 
 } objectRect;
 
+typedef struct objectCirc
+{
+    Vector2 center;
+    float radius;
+    Color color;
+    bool isExist;
+    bool isSelected;
+
+}objectCirc;
+
 //----------------------------------------------------------------------------------
 // Module functions declaration
 //----------------------------------------------------------------------------------
@@ -34,6 +45,7 @@ void UpdateCameraCenter(Camera2D *camera, Player *player,float delta, int width,
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, float delta, int width, int height);
 void addObjectRect(objectRect *objectR);
+void addObjectCirc(objectCirc *objectC);
 void deleteObjectRect(objectRect *objectR, int deleteID);
 
 //------------------------------------------------------------------------------------
@@ -61,7 +73,6 @@ int main(void)
     bool cock = false;
     bool dick = false;
     
-    //Color boxColour;
 
     Player player = { 0 };
     player.rect = (Rectangle){400,280,20,20};
@@ -69,7 +80,8 @@ int main(void)
     player.speed = 0;
     player.canJump = false;
    
-    objectRect objectR[TOTAL_RECT];
+    objectRect objectR[TOTAL_OBJECT];
+    objectCirc objectC[TOTAL_OBJECT];
 
     //debug
     int mousePosx = 0;
@@ -77,15 +89,17 @@ int main(void)
     bool collide = false;
 
 
-
+    //selection variable
     bool isSelecting = false;
     bool isOpenProperty = false;
-    int selected = 0;
+    int selectedEdit = 0;
+    int selectedMove = 0;
+    int selectedType; //0-Rectangle  1-Circle
    
 
     //initialize objectR array
 
-    for(int i = 0; i < TOTAL_RECT; i++)
+    for(int i = 0; i < TOTAL_OBJECT; i++)
     {
         objectR[i].rect.height = 0;
         objectR[i].rect.width = 0;
@@ -97,6 +111,15 @@ int main(void)
         objectR[i].canBeEdited = true;
     }
 
+    //initialize ObjectC array
+    for(int i = 0; i < TOTAL_OBJECT; i++)
+    {
+        objectC[i].center = (Vector2){0,0};
+        objectC[i].radius = 0;
+        objectC[i].color = WHITE;
+        objectC[i].isExist = false;
+        objectC[i].isSelected = false;
+    }
 
     //Level Objects
     objectR[0].rect = (Rectangle){100,500,1000,100};
@@ -119,7 +142,8 @@ int main(void)
     objectR[3].isSelected = false;
     objectR[3].canBeEdited = false;
 
-   
+
+    //Initialize Camera
     Camera2D camera = { 0 };
     camera.target = (Vector2){player.rect.x,player.rect.y};
    
@@ -157,6 +181,8 @@ int main(void)
     
         UpdatePlayer(&player, objectR, deltaTime);
 
+
+        //Camera Zoom
         camera.zoom += ((float)GetMouseWheelMove()*0.05f);
 
         if (camera.zoom > 3.0f) camera.zoom = 3.0f;
@@ -240,8 +266,12 @@ int main(void)
         {
             addObjectRect(objectR);
         }
+        if (IsKeyPressed(KEY_Q))
+        {
+            addObjectCirc(objectC);
+        }
 
-        
+
         mousePosx = GetMousePosition().x;
         recX = objectR[0].rect.x;
 
@@ -253,19 +283,29 @@ int main(void)
         //Highlight Object to drag
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         {
-            bool foundClick = false;
             if(!isSelecting)
             {
-                for(int i = 0; i <TOTAL_RECT && !foundClick; i++ )
+                for(int i = 0; i <TOTAL_OBJECT; i++ )
                 {
+                    //Collision Rectangle
                     if(objectR[i].isExist && objectR[i].canBeEdited)
                     {
-                        if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
+                        if(CheckCollisionPointRec(mousePosition, objectR[i].rect) )
                         {
-                            objectR[i].isSelected = true;
-                            foundClick = true;
-                            selected = i;
+                            selectedMove = i;
                             isSelecting = true;
+                            selectedType = 0;
+                        } 
+                    }
+
+                    //Collision Circle
+                    else if(objectC[i].isExist)
+                    {
+                        if(CheckCollisionPointCircle(mousePosition, objectC[i].center, objectC[i].radius) )
+                        {
+                            selectedMove = i;
+                            isSelecting = true; 
+                            selectedType = 1;
                         } 
                     }
                 }
@@ -274,37 +314,63 @@ int main(void)
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && isSelecting)
         {
             isSelecting = false;     
-            objectR[selected].isSelected = false;    
+            objectR[selectedMove].isSelected = false;  
+            objectC[selectedMove].isSelected = false;  
         }
 
         //Moving highlighted object
         if(isSelecting && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) 
         {
-            objectR[selected].rect.x = mousePosition.x - objectR[selected].rect.width/2  ;
-            objectR[selected].rect.y = mousePosition.y - objectR[selected].rect.height/2 ;
+            if(selectedType == 0)
+            {
+                objectR[selectedMove].rect.x = mousePosition.x - objectR[selectedMove].rect.width/2  ;
+                objectR[selectedMove].rect.y = mousePosition.y - objectR[selectedMove].rect.height/2 ;
+
+            }
+            else if (selectedType == 1)
+            {
+                objectC[selectedMove].center = (Vector2){ mousePosition.x,mousePosition.y};
+            } 
         }
 
         
         //highlight object to edit
         if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
-            bool foundClick = false;
             isOpenProperty = false;   
 
-            for(int i = 0; i <TOTAL_RECT && !foundClick; i++ )
+            for(int i = 0; i <TOTAL_OBJECT ; i++ )
             {
+                objectR[i].isSelected = false; 
+                objectC[i].isSelected = false; 
+                //Highlight Rectangle
                 if(objectR[i].isExist && objectR[i].canBeEdited)
                 {
-                    if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
+                    if(CheckCollisionPointRec(mousePosition, objectR[i].rect))
                     {
-                        selected = i;
+                        selectedEdit = i;
                         objectR[i].isSelected = true;
-                        foundClick = true;
                         isOpenProperty = true;
+                        selectedType = 0;
                     }
                     else
                     {
                         objectR[i].isSelected = false; 
+                    } 
+                }
+                //Highlight Circle
+                else if(objectR[i].isExist)
+                {
+                    if(CheckCollisionPointCircle(mousePosition, objectC[i].center, objectC[i].radius) )
+                    {
+                        selectedEdit = i;
+                        objectC[i].isSelected = true;
+                        isOpenProperty = true;
+                        selectedType = 1;
+                    } 
+                    else
+                    {
+                        objectC[i].isSelected = false; 
                     } 
                 }
             }       
@@ -313,7 +379,7 @@ int main(void)
         //Delete object
         if((IsKeyPressed(KEY_DELETE)))
         {
-            deleteObjectRect(objectR,selected);
+            deleteObjectRect(objectR,selectedEdit);
         }
         
         //Call update camera function by its pointer
@@ -327,9 +393,10 @@ int main(void)
             ClearBackground(LIGHTGRAY);
 
             BeginMode2D(camera);
-
-                for(int i = 0; i < TOTAL_RECT; i++)
+                
+                for(int i = 0; i < TOTAL_OBJECT; i++)
                 {
+                    //Draw Rectangle
                     if(objectR[i].isExist)
                     {
                         if(objectR[i].isSelected)
@@ -342,6 +409,21 @@ int main(void)
                             DrawRectangleRec(objectR[i].rect,objectR[i].color); 
                         }    
                     }
+
+                    //Draw Circle
+                    if(objectC[i].isExist)
+                    {
+                        if(objectC[i].isSelected)
+                        {
+                            DrawCircle(objectC[i].center.x,objectC[i].center.y,objectC[i].radius,objectC[i].color);
+                            DrawCircleLines(objectC[i].center.x,objectC[i].center.y,objectC[i].radius,GREEN);
+                        }
+                        else
+                        {
+                            DrawCircle(objectC[i].center.x,objectC[i].center.y,objectC[i].radius,objectC[i].color);
+                        }    
+                    }
+
                 }
 
                 //DrawRectangle(0,0,1280,720,GRAY);
@@ -398,20 +480,40 @@ int main(void)
             {
                 DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
                 //Set Color
-                //parametersBox color R 
+                 
                 
-                objectR[selected].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectR[selected].color.r, 0, 255);
+                //Rectangle Properties
+                if(selectedType == 0)
+                {
+                   //parametersBox color R
+                    objectR[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectR[selectedEdit].color.r, 0, 255);
                 
-                //parametersBox color G 
-                objectR[selected].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectR[selected].color.g, 0, 255);
-                
-                //parametersBox color B 
-                objectR[selected].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectR[selected].color.b, 0, 255);
+                    //parametersBox color G 
+                    objectR[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectR[selectedEdit].color.g, 0, 255);
+                    
+                    //parametersBox color B 
+                    objectR[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectR[selectedEdit].color.b, 0, 255);
 
-                // //Change Size
-                objectR[selected].rect.height = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Width", NULL, objectR[selected].rect.height, 0, 1000);
-                objectR[selected].rect.width = (int)GuiSliderBar((Rectangle){ 1000, 70, 105, 20 }, "Height", NULL, objectR[selected].rect.width, 0, 1000);
+                    // //Change Size
+                    objectR[selectedEdit].rect.width = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Width", NULL, objectR[selectedEdit].rect.width, 0, 1000);
+                    objectR[selectedEdit].rect.height = (int)GuiSliderBar((Rectangle){ 1000, 70, 105, 20 }, "Height", NULL, objectR[selectedEdit].rect.height, 0, 1000);
+                }
+                
+                else if (selectedType == 1)
+                {
+                    //parametersBox color R
+                    objectC[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectC[selectedEdit].color.r, 0, 255);
+                
+                    //parametersBox color G 
+                    objectC[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectC[selectedEdit].color.g, 0, 255);
+                    
+                    //parametersBox color B 
+                    objectC[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectC[selectedEdit].color.b, 0, 255);
 
+                    objectC[selectedEdit].radius = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Radius", NULL, objectC[selectedEdit].radius, 0, 1000);
+
+                }
+                
                 if (GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects")))
                 {
                     addObjectRect(objectR);
@@ -447,7 +549,7 @@ void addObjectRect(objectRect *objectR)
     
     int i = 0;
 
-    while(i < TOTAL_RECT && !foundEmptySlot)
+    while(i < TOTAL_OBJECT && !foundEmptySlot)
     {
         objectRect *oi = objectR + i;
         if(!oi->isExist)
@@ -462,10 +564,37 @@ void addObjectRect(objectRect *objectR)
             oi->rect.width = 100;
             oi->rect.x = 0;
             oi->rect.x = 0;
+            oi->isSelected = false;
         } 
         i++;
 
     }
+}
+
+void addObjectCirc(objectCirc *objectC)
+{
+    bool foundEmptySlot = false;
+    
+    int i = 0;
+
+    while(i < TOTAL_OBJECT && !foundEmptySlot)
+    {
+        objectCirc *oi = objectC + i;
+        if(!oi->isExist)
+        {
+            foundEmptySlot = true;
+        }
+
+        if(foundEmptySlot)
+        {
+            oi->center = (Vector2){100,100};
+            oi->radius = 50;
+            oi->color = WHITE;
+            oi->isExist = true;
+            oi->isSelected = false;        
+        } 
+        i++;
+    }    
 }
 
 void deleteObjectRect(objectRect *objectR,int deleteID)
@@ -475,15 +604,17 @@ void deleteObjectRect(objectRect *objectR,int deleteID)
     objectR[deleteID].rect.width = 0;
     objectR[deleteID].rect.x = 0;
     objectR[deleteID].rect.x = 0;   
-    objectR[deleteID].isSelected = 0;
+    objectR[deleteID].isSelected = false;
     objectR[deleteID].color = WHITE;
 }
 
 void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 {
+    
+
     if (IsKeyDown(KEY_LEFT))
     {
-        player->rect.x -= PLAYER_HOR_SPD*delta;
+        player->rect.x = player->rect.x - PLAYER_HOR_SPD*delta;
     } 
     if (IsKeyDown(KEY_RIGHT)) 
     {
@@ -497,7 +628,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 
 
     int hitObstacle = 0;
-    for (int i = 0; i < TOTAL_RECT; i++)
+    for (int i = 0; i < TOTAL_OBJECT; i++)
     {
         objectRect *oi = objectR + i;
         if(CheckCollisionRecs(oi->rect,player->rect))
