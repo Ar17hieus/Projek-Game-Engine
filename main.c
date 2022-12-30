@@ -1,7 +1,8 @@
+#define RAYGUI_IMPLEMENTATION
 #include "raylib.h"
 #include "raymath.h"
 #include "raygui.h"
-#define RAYGUI_IMPLEMENTATION
+
 
 
 #define G 400
@@ -11,6 +12,7 @@
 
 typedef struct Player {
     Vector2 position;
+    Rectangle rect;
     float speed;
     bool canJump;
     bool soundJump;
@@ -34,13 +36,14 @@ typedef struct EnvItem {
 //----------------------------------------------------------------------------------
 // Module functions declaration
 //----------------------------------------------------------------------------------
-void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
+//void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
+void UpdatePlayer(Player *player, objectRect *objectR,float delta);
 void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-//void addObjectRect(objectRect *objectR[]);
+void addObjectRect(objectRect *objectR);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -68,10 +71,12 @@ int main(void)
     bool cock = false;
     bool dick = false;
     
-    Color boxColour;
+    //Color boxColour;
 
     Player player = { 0 };
     player.position = (Vector2){ 400, 280 };
+    player.rect = (Rectangle){20,20,player.position.x,player.position.y};
+
     player.speed = 0;
     player.canJump = false;
     EnvItem envItems[] = {
@@ -93,7 +98,8 @@ int main(void)
 
     
     bool isSelecting = false;
-    int selected;
+    bool isOpenProperty = false;
+    int selected = 0;
    
 
     //initialize objectR array
@@ -107,13 +113,15 @@ int main(void)
 
         objectR[i].color = WHITE;
         objectR[i].isExist = false;
-        objectR[i].isExist = false;
     }
 
+    objectR[0].rect = (Rectangle){100,500,1000,100};
+    objectR[0].isExist = true;
+    objectR[0].isSelected = false;
    
     int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
 
-   Camera2D camera = { 0 };
+    Camera2D camera = { 0 };
     camera.target = player.position;
    
     camera.offset = (Vector2){screenWidth/2.0f, screenHeight/2.0f };
@@ -151,9 +159,10 @@ int main(void)
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
 
-        UpdatePlayer(&player, envItems, envItemsLength, deltaTime);
+    
+        UpdatePlayer(&player, objectR, deltaTime);
 
-         camera.zoom += ((float)GetMouseWheelMove()*0.05f);
+        camera.zoom += ((float)GetMouseWheelMove()*0.05f);
 
         if (camera.zoom > 3.0f) camera.zoom = 3.0f;
         else if (camera.zoom < 0.25f) camera.zoom = 0.25f;
@@ -233,28 +242,31 @@ int main(void)
         //Add objects
         if (IsKeyPressed(KEY_E))
         {
-            bool foundEmptySlot = false;
-            int emptySlot;
+            // bool foundEmptySlot = false;
+            // int emptySlot;
 
-            //find empty spot
-            for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-            {
-                if(!objectR[i].isExist)
-                {
-                    emptySlot = i;
-                    foundEmptySlot = true;
-                }
-            }
+            // //find empty spot
+            // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+            // {
+            //     if(!objectR[i].isExist)
+            //     {
+            //         emptySlot = i;
+            //         foundEmptySlot = true;
+            //     }
+            // }
 
-            if(foundEmptySlot)
-            {
-                objectR[emptySlot].isExist = true;
-                objectR[emptySlot].rect.height = 100;
-                objectR[emptySlot].rect.width = 100;
-                objectR[emptySlot].rect.x = 100;
-                objectR[emptySlot].rect.x = 100;
-                objectR[emptySlot].isSelected = 0;
-            }
+            // if(foundEmptySlot)
+            // {
+            //     objectR[emptySlot].isExist = true;
+            //     objectR[emptySlot].rect.height = 100;
+            //     objectR[emptySlot].rect.width = 100;
+            //     objectR[emptySlot].rect.x = 100;
+            //     objectR[emptySlot].rect.x = 100;
+            //     objectR[emptySlot].isSelected = 0;
+            // }
+
+
+            addObjectRect(objectR);
         }
 
         mousePosx = GetMousePosition().x;
@@ -263,9 +275,9 @@ int main(void)
         Vector2 mousePosition;
         mousePosition.x = (GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x;
         mousePosition.y = (GetMousePosition().y - camera.offset.y)/camera.zoom + camera.target.y;
-
+       
         
-        //Highlight Object
+        //Highlight Object to drag
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         {
             bool foundClick = false;
@@ -286,21 +298,45 @@ int main(void)
                 }
             }
         }
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && isSelecting)
+        {
+            isSelecting = false;     
+            objectR[selected].isSelected = false;    
+        }
 
         //Moving highlighted object
-        if(isSelecting)
+        if(isSelecting && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) 
         {
             objectR[selected].rect.x = mousePosition.x - objectR[selected].rect.width/2  ;
             objectR[selected].rect.y = mousePosition.y - objectR[selected].rect.height/2 ;
-            
-            if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-            {
-                isSelecting = false;     
-                objectR[selected].isSelected = false;                    
-            }
         }
 
-    
+        
+        //highlight object to edit
+        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        {
+            bool foundClick = false;
+            isOpenProperty = false;   
+
+            for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+            {
+                if(objectR[i].isExist)
+                {
+                    if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
+                    {
+                        selected = i;
+                        objectR[i].isSelected = true;
+                        foundClick = true;
+                        isOpenProperty = true;
+                    }
+                    else
+                    {
+                        objectR[i].isSelected = false; 
+                    } 
+                }
+            }       
+        }
+
         
         //Call update camera function by its pointer
         cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
@@ -322,7 +358,8 @@ int main(void)
                     {
                         if(objectR[i].isSelected)
                         {
-                            DrawRectangleRec(objectR[i].rect,GREEN);
+                            DrawRectangleRec(objectR[i].rect,objectR[i].color);
+                            DrawRectangleLinesEx(objectR[i].rect,5, GREEN);
                         }
                         else
                         {
@@ -334,8 +371,8 @@ int main(void)
                 //DrawRectangle(0,0,1280,720,GRAY);
                 DrawCircle((GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x ,(GetMousePosition().y - camera.offset.y)/camera.zoom +camera.target.y,5,RED);
 
-                Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
-                DrawRectangleRec(playerRect, RED);
+                //Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
+                DrawRectangleRec(player.rect, RED);
                 
                 //guiTest
                 //DrawRectangle(400, 240, 40, 40, boxColour);
@@ -379,29 +416,39 @@ int main(void)
             {
                 DrawText("Press F for Sound F", 840, 130, 10, RED);
             }
-            
-            DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
-            
-            /*
-            //Set Color
-            parametersBox color R 
-            boxColour.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", "", boxColour.r, 0, 255);
-            
-            parametersBox color G 
-            boxColour.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", boxColour.g, 0, 255);
-            
-            parametersBox color B 
-            boxColour.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", boxColour.b, 0, 255);
-            
+
+
+            if(isOpenProperty)
+            {
+                DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
+                //Set Color
+                //parametersBox color R 
+                
+                objectR[selected].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectR[selected].color.r, 0, 255);
+                
+                //parametersBox color G 
+                objectR[selected].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectR[selected].color.g, 0, 255);
+                
+                //parametersBox color B 
+                objectR[selected].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectR[selected].color.b, 0, 255);
+
+                // //Change Size
+                objectR[selected].rect.height = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, objectR[selected].rect.height, 0, 1000);
+                objectR[selected].rect.width = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, objectR[selected].rect.width, 0, 1000);
+
+               // recta = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
+            }
+           
             //Add Box
-            function add box = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
+            // function add box = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
             
-            //Change Size
-            parametersBox x = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, cubeSize.x, 0, 10);
-            parametersBox y = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, cubeSize.y, 0, 10);
-            */
+            // //Change Size
+            // parametersBox x = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, cubeSize.x, 0, 10);
+            //parametersBox y = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, cubeSize.y, 0, 10);
+            
             
             //debug
+           
             DrawText(TextFormat("Integer value: %d", mousePosx), 620, 130, 10, DARKGRAY);
             DrawText(TextFormat("Integer value: %d", recX), 620, 160, 10, DARKGRAY);
 
@@ -423,31 +470,55 @@ int main(void)
 }
 
 
-// void addObjectRect(objectRect *objectR[])
-// {
-//     bool foundEmptySlot = false;
-//     int emptySlot;
-//     //find empty spot
-//     for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-//     {
-//         if(!objectR[i]->isExist)
-//         {
-//             emptySlot = 0;
-//             foundEmptySlot = true;
-//         }
-//     }
-//     if(foundEmptySlot)
-//     {
-//         objectR[emptySlot]->isExist = true;
-//         objectR[emptySlot]->rect.height = 100;
-//         objectR[emptySlot]->rect.width = 100;
-//         objectR[emptySlot]->rect.x = 0;
-//         objectR[emptySlot]->rect.x = 0;
-//     }
-// }
-
-void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta)
+void addObjectRect(objectRect *objectR)
 {
+
+    bool foundEmptySlot = false;
+    int emptySlot;
+    objectRect *oi;
+    for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+    {
+        oi = objectR + i;
+        if(!oi->isExist)
+        {
+            emptySlot = 0;
+            foundEmptySlot = true;
+        }
+    }
+    if(foundEmptySlot)
+    {
+        oi[emptySlot].isExist = true;
+        oi[emptySlot].rect.height = 100;
+        oi[emptySlot].rect.width = 100;
+        oi[emptySlot].rect.x = 0;
+        oi[emptySlot].rect.x = 0;
+    }
+
+    // bool foundEmptySlot = false;
+    // int emptySlot;
+    // //find empty spot
+    // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+    // {
+    //     if(!objectR[i]->isExist)
+    //     {
+    //         emptySlot = 0;
+    //         foundEmptySlot = true;
+    //     }
+    // }
+    // if(foundEmptySlot)
+    // {
+    //     objectR[emptySlot]->isExist = true;
+    //     objectR[emptySlot]->rect.height = 100;
+    //     objectR[emptySlot]->rect.width = 100;
+    //     objectR[emptySlot]->rect.x = 0;
+    //     objectR[emptySlot]->rect.x = 0;
+    // }
+}
+
+void UpdatePlayer(Player *player, objectRect *objectR,float delta)
+{
+    
+    
     if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
     if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
     if (IsKeyDown(KEY_SPACE) && player->canJump)
@@ -456,31 +527,129 @@ void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float d
         player->canJump = false;
     }
 
+
     int hitObstacle = 0;
-    for (int i = 0; i < envItemsLength; i++)
+    for (int i = 0; i < TOTAL_RECT; i++)
     {
-        EnvItem *ei = envItems + i;
-        Vector2 *p = &(player->position);
-        if (ei->blocking &&
-            ei->rect.x <= p->x &&
-            ei->rect.x + ei->rect.width >= p->x &&
-            ei->rect.y >= p->y &&
-            ei->rect.y <= p->y + player->speed*delta)
+        objectRect *oi = objectR + i;
+        if(CheckCollisionRecs(oi->rect,player->rect))
         {
             hitObstacle = 1;
+            
             player->speed = 0.0f;
-            p->y = ei->rect.y;
-        }
-    }
 
+            //Up Collision
+            if(oi->rect.y > player->rect.y)
+            {
+                player->position.y = oi->rect.y- player->rect.height;
+            }
+
+            // if(player->rect.y + player->rect.height > oi->rect.height)
+            // {
+            //     player->position.y =  oi->rect.y - player->rect.height;
+            // }
+            // else if((player->rect.y < oi->rect.y + oi->rect.height) && !(oi->rect.x > player->rect.x) && !(oi->rect.x - oi->rect.width < player->rect.x))
+            // {
+            //     //player->position.y = player->position.y - (oi->rect.y + oi->rect.height);
+            //     player->position.y = (oi->rect.y + oi->rect.height);
+            //     //player->speed = 0;
+            // }
+
+            //Left Collision
+            else if(oi->rect.x < player->rect.x)
+            {
+                player->position.x = oi->rect.x - player->rect.width;
+                
+            }
+            // else if(player->rect.x < oi->rect.x + oi->rect.width)
+            // {
+            //     player->position.x = oi->rect.x + oi->rect.width;
+            // }
+
+            //Right Collision
+            else if(oi->rect.x - oi->rect.width < player->rect.x)
+            {
+                player->position.x = (oi->rect.x + oi->rect.width) + 1 ;
+            }
+            
+            
+        }
+    } 
     if (!hitObstacle)
     {
         player->position.y += player->speed*delta;
         player->speed += G*delta;
         player->canJump = false;
+
     }
     else player->canJump = true;
+
+
+    player->rect=(Rectangle){player->position.x,player->position.y,10,10};
+
+    // int hitObstacle = 0;
+    // for (int i = 0; i < envItemsLength; i++)
+    // {
+    //     EnvItem *ei = envItems + i;
+    //     Vector2 *p = &(player->position);
+    //     if (ei->blocking &&
+    //         ei->rect.x <= p->x &&
+    //         ei->rect.x + ei->rect.width >= p->x &&
+    //         ei->rect.y >= p->y &&
+    //         ei->rect.y <= p->y + player->speed*delta)
+    //     {
+    //         hitObstacle = 1;
+    //         player->speed = 0.0f;
+    //         p->y = ei->rect.y;
+    //     }
+    // }
+
+    // if (!hitObstacle)
+    // {
+    //     player->position.y += player->speed*delta;
+    //     player->speed += G*delta;
+    //     player->canJump = false;
+    // }
+    // else player->canJump = true;
+
+    
 }
+
+// void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta)
+// {
+//     if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
+//     if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
+//     if (IsKeyDown(KEY_SPACE) && player->canJump)
+//     {
+//         player->speed = -PLAYER_JUMP_SPD;
+//         player->canJump = false;
+//     }
+
+//     int hitObstacle = 0;
+//     for (int i = 0; i < envItemsLength; i++)
+//     {
+//         EnvItem *ei = envItems + i;
+//         Vector2 *p = &(player->position);
+//         if (ei->blocking &&
+//             ei->rect.x <= p->x &&
+//             ei->rect.x + ei->rect.width >= p->x &&
+//             ei->rect.y >= p->y &&
+//             ei->rect.y <= p->y + player->speed*delta)
+//         {
+//             hitObstacle = 1;
+//             player->speed = 0.0f;
+//             p->y = ei->rect.y;
+//         }
+//     }
+
+//     if (!hitObstacle)
+//     {
+//         player->position.y += player->speed*delta;
+//         player->speed += G*delta;
+//         player->canJump = false;
+//     }
+//     else player->canJump = true;
+// }
 
 void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
 {
