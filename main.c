@@ -4,7 +4,6 @@
 #include "raygui.h"
 
 
-
 #define G 400
 #define PLAYER_JUMP_SPD 350.0f
 #define PLAYER_HOR_SPD 200.0f
@@ -24,26 +23,19 @@ typedef struct objectRect
     Color color;
     bool isExist;
     bool isSelected;
+    bool canBeEdited;
+
 } objectRect;
-
-
-typedef struct EnvItem {
-    Rectangle rect;
-    int blocking;
-    Color color;
-} EnvItem;
 
 //----------------------------------------------------------------------------------
 // Module functions declaration
 //----------------------------------------------------------------------------------
-//void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta);
 void UpdatePlayer(Player *player, objectRect *objectR,float delta);
-void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
-void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraCenter(Camera2D *camera, Player *player,float delta, int width, int height);
+void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height);
+void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, float delta, int width, int height);
 void addObjectRect(objectRect *objectR);
+void deleteObjectRect(objectRect *objectR, int deleteID);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -56,8 +48,7 @@ int main(void)
     const int screenHeight = 720;
 
    
-
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera");
+    InitWindow(screenWidth, screenHeight, "Game Engine Project");
     
     InitAudioDevice();      // Initialize audio device
     
@@ -79,15 +70,7 @@ int main(void)
 
     player.speed = 0;
     player.canJump = false;
-    EnvItem envItems[] = {
-        {{ 0, 0, 1000, 400 }, 0, LIGHTGRAY },
-        {{ 0, 400, 1000, 200 }, 1, GRAY },
-        {{ 300, 200, 400, 10 }, 1, GRAY },
-        {{ 250, 300, 100, 10 }, 1, GRAY },
-        {{ 650, 300, 100, 10 }, 1, GRAY }
-    };
-
-
+   
     objectRect objectR[TOTAL_RECT];
 
     //debug
@@ -96,7 +79,7 @@ int main(void)
     bool collide = false;
 
 
-    
+
     bool isSelecting = false;
     bool isOpenProperty = false;
     int selected = 0;
@@ -113,14 +96,32 @@ int main(void)
 
         objectR[i].color = WHITE;
         objectR[i].isExist = false;
+        objectR[i].canBeEdited = true;
     }
 
+
+    //Level Objects
     objectR[0].rect = (Rectangle){100,500,1000,100};
     objectR[0].isExist = true;
     objectR[0].isSelected = false;
-   
-    int envItemsLength = sizeof(envItems)/sizeof(envItems[0]);
+    objectR[0].canBeEdited = false;
 
+    objectR[1].rect = (Rectangle){100,0,100,500};
+    objectR[1].isExist = true;
+    objectR[1].isSelected = false;
+    objectR[1].canBeEdited = false;
+
+    objectR[2].rect = (Rectangle){1000,0,100,500};
+    objectR[2].isExist = true;
+    objectR[2].isSelected = false;
+    objectR[2].canBeEdited = false;
+
+    objectR[3].rect = (Rectangle){100,0,1000,100};
+    objectR[3].isExist = true;
+    objectR[3].isSelected = false;
+    objectR[3].canBeEdited = false;
+
+   
     Camera2D camera = { 0 };
     camera.target = player.position;
    
@@ -130,12 +131,10 @@ int main(void)
     camera.zoom = 1;
 
     //Store pointers to the multiple update camera functions
-    void (*cameraUpdaters[])(Camera2D*, Player*, EnvItem*, int, float, int, int) = {
+    void (*cameraUpdaters[])(Camera2D*, Player*, float, int, int) = {
         UpdateCameraCenter,
-        UpdateCameraCenterInsideMap,
         UpdateCameraCenterSmoothFollow,
         UpdateCameraEvenOutOnLanding,
-        UpdateCameraPlayerBoundsPush
     };
 
     int cameraOption = 0;
@@ -143,10 +142,8 @@ int main(void)
 
     char *cameraDescriptions[] = {
         "Follow player center",
-        "Follow player center, but clamp to map edges",
         "Follow player center; smoothed",
         "Follow player center horizontally; updateplayer center vertically after landing",
-        "Player push camera on getting too close to screen edge"
     };
 
     SetTargetFPS(60);
@@ -242,33 +239,10 @@ int main(void)
         //Add objects
         if (IsKeyPressed(KEY_E))
         {
-            // bool foundEmptySlot = false;
-            // int emptySlot;
-
-            // //find empty spot
-            // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-            // {
-            //     if(!objectR[i].isExist)
-            //     {
-            //         emptySlot = i;
-            //         foundEmptySlot = true;
-            //     }
-            // }
-
-            // if(foundEmptySlot)
-            // {
-            //     objectR[emptySlot].isExist = true;
-            //     objectR[emptySlot].rect.height = 100;
-            //     objectR[emptySlot].rect.width = 100;
-            //     objectR[emptySlot].rect.x = 100;
-            //     objectR[emptySlot].rect.x = 100;
-            //     objectR[emptySlot].isSelected = 0;
-            // }
-
-
-            addObjectRect(objectR);
+            addObjectRect(&objectR);
         }
 
+        
         mousePosx = GetMousePosition().x;
         recX = objectR[0].rect.x;
 
@@ -285,7 +259,7 @@ int main(void)
             {
                 for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
                 {
-                    if(objectR[i].isExist)
+                    if(objectR[i].isExist && objectR[i].canBeEdited)
                     {
                         if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
                         {
@@ -320,7 +294,7 @@ int main(void)
 
             for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
             {
-                if(objectR[i].isExist)
+                if(objectR[i].isExist && objectR[i].canBeEdited)
                 {
                     if(CheckCollisionPointRec(mousePosition, objectR[i].rect) && !foundClick)
                     {
@@ -337,9 +311,14 @@ int main(void)
             }       
         }
 
+        //Delete object
+        if((IsKeyPressed(KEY_DELETE)))
+        {
+            deleteObjectRect(&objectR,selected);
+        }
         
         //Call update camera function by its pointer
-        cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
+        cameraUpdaters[cameraOption](&camera, &player, deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -349,8 +328,6 @@ int main(void)
             ClearBackground(LIGHTGRAY);
 
             BeginMode2D(camera);
-
-                for (int i = 0; i < envItemsLength; i++) DrawRectangleRec(envItems[i].rect, envItems[i].color);
 
                 for(int i = 0; i < TOTAL_RECT; i++)
                 {
@@ -433,20 +410,15 @@ int main(void)
                 objectR[selected].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectR[selected].color.b, 0, 255);
 
                 // //Change Size
-                objectR[selected].rect.height = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, objectR[selected].rect.height, 0, 1000);
-                objectR[selected].rect.width = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, objectR[selected].rect.width, 0, 1000);
+                objectR[selected].rect.height = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Width", NULL, objectR[selected].rect.height, 0, 1000);
+                objectR[selected].rect.width = (int)GuiSliderBar((Rectangle){ 1000, 70, 105, 20 }, "Height", NULL, objectR[selected].rect.width, 0, 1000);
 
-               // recta = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
+                if (GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects")))
+                {
+                    addObjectRect(&objectR);
+                }
             }
            
-            //Add Box
-            // function add box = GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects"));
-            
-            // //Change Size
-            // parametersBox x = (int)GuiSliderBar((Rectangle){ 640, 40, 105, 20 }, "Width", NULL, cubeSize.x, 0, 10);
-            //parametersBox y = (int)GuiSliderBar((Rectangle){ 640, 70, 105, 20 }, "Height", NULL, cubeSize.y, 0, 10);
-            
-            
             //debug
            
             DrawText(TextFormat("Integer value: %d", mousePosx), 620, 130, 10, DARKGRAY);
@@ -472,53 +444,44 @@ int main(void)
 
 void addObjectRect(objectRect *objectR)
 {
-
     bool foundEmptySlot = false;
-    int emptySlot;
-    objectRect *oi;
-    for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
+    
+    int i = 0;
+
+    while(i < TOTAL_RECT && !foundEmptySlot)
     {
-        oi = objectR + i;
+        objectRect *oi = objectR + i;
         if(!oi->isExist)
         {
-            emptySlot = 0;
             foundEmptySlot = true;
         }
-    }
-    if(foundEmptySlot)
-    {
-        oi[emptySlot].isExist = true;
-        oi[emptySlot].rect.height = 100;
-        oi[emptySlot].rect.width = 100;
-        oi[emptySlot].rect.x = 0;
-        oi[emptySlot].rect.x = 0;
-    }
 
-    // bool foundEmptySlot = false;
-    // int emptySlot;
-    // //find empty spot
-    // for(int i = 0;i < TOTAL_RECT; i++ && !foundEmptySlot)
-    // {
-    //     if(!objectR[i]->isExist)
-    //     {
-    //         emptySlot = 0;
-    //         foundEmptySlot = true;
-    //     }
-    // }
-    // if(foundEmptySlot)
-    // {
-    //     objectR[emptySlot]->isExist = true;
-    //     objectR[emptySlot]->rect.height = 100;
-    //     objectR[emptySlot]->rect.width = 100;
-    //     objectR[emptySlot]->rect.x = 0;
-    //     objectR[emptySlot]->rect.x = 0;
-    // }
+        if(foundEmptySlot)
+        {
+            oi->isExist = true;
+            oi->rect.height = 100;
+            oi->rect.width = 100;
+            oi->rect.x = 0;
+            oi->rect.x = 0;
+        } 
+        i++;
+
+    }
+}
+
+void deleteObjectRect(objectRect *objectR,int deleteID)
+{
+    objectR[deleteID].isExist = false;
+    objectR[deleteID].rect.height = 0;
+    objectR[deleteID].rect.width = 0;
+    objectR[deleteID].rect.x = 0;
+    objectR[deleteID].rect.x = 0;   
+    objectR[deleteID].isSelected = 0;
+    objectR[deleteID].color = WHITE;
 }
 
 void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 {
-    
-    
     if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
     if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
     if (IsKeyDown(KEY_SPACE) && player->canJump)
@@ -651,37 +614,13 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 //     else player->canJump = true;
 // }
 
-void UpdateCameraCenter(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
+void UpdateCameraCenter(Camera2D *camera, Player *player, float delta, int width, int height)
 {
     camera->offset = (Vector2){ width/2.0f, height/2.0f };
     camera->target = player->position;
 }
 
-void UpdateCameraCenterInsideMap(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
-{
-    camera->target = player->position;
-    camera->offset = (Vector2){ width/2.0f, height/2.0f };
-    float minX = 1000, minY = 1000, maxX = -1000, maxY = -1000;
-
-    for (int i = 0; i < envItemsLength; i++)
-    {
-        EnvItem *ei = envItems + i;
-        minX = fminf(ei->rect.x, minX);
-        maxX = fmaxf(ei->rect.x + ei->rect.width, maxX);
-        minY = fminf(ei->rect.y, minY);
-        maxY = fmaxf(ei->rect.y + ei->rect.height, maxY);
-    }
-
-    Vector2 max = GetWorldToScreen2D((Vector2){ maxX, maxY }, *camera);
-    Vector2 min = GetWorldToScreen2D((Vector2){ minX, minY }, *camera);
-
-    if (max.x < width) camera->offset.x = width - (max.x - width/2);
-    if (max.y < height) camera->offset.y = height - (max.y - height/2);
-    if (min.x > 0) camera->offset.x = width/2 - min.x;
-    if (min.y > 0) camera->offset.y = height/2 - min.y;
-}
-
-void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
+void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height)
 {
     static float minSpeed = 30;
     static float minEffectLength = 10;
@@ -698,7 +637,7 @@ void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, EnvItem *e
     }
 }
 
-void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
+void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player,float delta, int width, int height)
 {
     static float evenOutSpeed = 700;
     static int eveningOut = false;
@@ -738,18 +677,4 @@ void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, EnvItem *env
             evenOutTarget = player->position.y;
         }
     }
-}
-
-void UpdateCameraPlayerBoundsPush(Camera2D *camera, Player *player, EnvItem *envItems, int envItemsLength, float delta, int width, int height)
-{
-    static Vector2 bbox = { 0.2f, 0.2f };
-
-    Vector2 bboxWorldMin = GetScreenToWorld2D((Vector2){ (1 - bbox.x)*0.5f*width, (1 - bbox.y)*0.5f*height }, *camera);
-    Vector2 bboxWorldMax = GetScreenToWorld2D((Vector2){ (1 + bbox.x)*0.5f*width, (1 + bbox.y)*0.5f*height }, *camera);
-    camera->offset = (Vector2){ (1 - bbox.x)*0.5f * width, (1 - bbox.y)*0.5f*height };
-
-    if (player->position.x < bboxWorldMin.x) camera->target.x = player->position.x;
-    if (player->position.y < bboxWorldMin.y) camera->target.y = player->position.y;
-    if (player->position.x > bboxWorldMax.x) camera->target.x = bboxWorldMin.x + (player->position.x - bboxWorldMax.x);
-    if (player->position.y > bboxWorldMax.y) camera->target.y = bboxWorldMin.y + (player->position.y - bboxWorldMax.y);
 }

@@ -9,6 +9,7 @@
 		"**/*.exe": true,
 	},
 	"files.associations": {
-		"raygui.h": "c"
+		"raygui.h": "c",
+		"*.m": "c"
 	}
 }
