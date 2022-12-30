@@ -10,7 +10,6 @@
 #define TOTAL_RECT 10
 
 typedef struct Player {
-    Vector2 position;
     Rectangle rect;
     float speed;
     bool canJump;
@@ -65,8 +64,7 @@ int main(void)
     //Color boxColour;
 
     Player player = { 0 };
-    player.position = (Vector2){ 400, 280 };
-    player.rect = (Rectangle){20,20,player.position.x,player.position.y};
+    player.rect = (Rectangle){400,280,20,20};
 
     player.speed = 0;
     player.canJump = false;
@@ -123,7 +121,7 @@ int main(void)
 
    
     Camera2D camera = { 0 };
-    camera.target = player.position;
+    camera.target = (Vector2){player.rect.x,player.rect.y};
    
     camera.offset = (Vector2){screenWidth/2.0f, screenHeight/2.0f };
    
@@ -167,7 +165,8 @@ int main(void)
         if (IsKeyPressed(KEY_R))
         {
             camera.zoom = 1.0f;
-            player.position = (Vector2){ 400, 280 };
+            player.rect.x = 400;
+            player.rect.y = 280;
         }
 
         if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
@@ -239,7 +238,7 @@ int main(void)
         //Add objects
         if (IsKeyPressed(KEY_E))
         {
-            addObjectRect(&objectR);
+            addObjectRect(objectR);
         }
 
         
@@ -257,7 +256,7 @@ int main(void)
             bool foundClick = false;
             if(!isSelecting)
             {
-                for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+                for(int i = 0; i <TOTAL_RECT && !foundClick; i++ )
                 {
                     if(objectR[i].isExist && objectR[i].canBeEdited)
                     {
@@ -292,7 +291,7 @@ int main(void)
             bool foundClick = false;
             isOpenProperty = false;   
 
-            for(int i = 0; i <TOTAL_RECT; i++ && !foundClick)
+            for(int i = 0; i <TOTAL_RECT && !foundClick; i++ )
             {
                 if(objectR[i].isExist && objectR[i].canBeEdited)
                 {
@@ -314,7 +313,7 @@ int main(void)
         //Delete object
         if((IsKeyPressed(KEY_DELETE)))
         {
-            deleteObjectRect(&objectR,selected);
+            deleteObjectRect(objectR,selected);
         }
         
         //Call update camera function by its pointer
@@ -415,7 +414,7 @@ int main(void)
 
                 if (GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects")))
                 {
-                    addObjectRect(&objectR);
+                    addObjectRect(objectR);
                 }
             }
            
@@ -482,8 +481,14 @@ void deleteObjectRect(objectRect *objectR,int deleteID)
 
 void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 {
-    if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
-    if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
+    if (IsKeyDown(KEY_LEFT))
+    {
+        player->rect.x -= PLAYER_HOR_SPD*delta;
+    } 
+    if (IsKeyDown(KEY_RIGHT)) 
+    {
+        player->rect.x += PLAYER_HOR_SPD*delta;
+    }
     if (IsKeyDown(KEY_SPACE) && player->canJump)
     {
         player->speed = -PLAYER_JUMP_SPD;
@@ -504,7 +509,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
             //Up Collision
             if(oi->rect.y > player->rect.y)
             {
-                player->position.y = oi->rect.y- player->rect.height;
+                player->rect.y = oi->rect.y- player->rect.height;
             }
 
             // if(player->rect.y + player->rect.height > oi->rect.height)
@@ -521,7 +526,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
             //Left Collision
             else if(oi->rect.x < player->rect.x)
             {
-                player->position.x = oi->rect.x - player->rect.width;
+                player->rect.x = oi->rect.x - player->rect.width;
                 
             }
             // else if(player->rect.x < oi->rect.x + oi->rect.width)
@@ -532,7 +537,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
             //Right Collision
             else if(oi->rect.x - oi->rect.width < player->rect.x)
             {
-                player->position.x = (oi->rect.x + oi->rect.width) + 1 ;
+                player->rect.x = (oi->rect.x + oi->rect.width) + 1 ;
             }
             
             
@@ -540,7 +545,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
     } 
     if (!hitObstacle)
     {
-        player->position.y += player->speed*delta;
+        player->rect.y += player->speed*delta;
         player->speed += G*delta;
         player->canJump = false;
 
@@ -548,7 +553,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
     else player->canJump = true;
 
 
-    player->rect=(Rectangle){player->position.x,player->position.y,10,10};
+   // player->rect=(Rectangle){player->position.x,player->position.y,10,10};
 
     // int hitObstacle = 0;
     // for (int i = 0; i < envItemsLength; i++)
@@ -617,7 +622,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 void UpdateCameraCenter(Camera2D *camera, Player *player, float delta, int width, int height)
 {
     camera->offset = (Vector2){ width/2.0f, height/2.0f };
-    camera->target = player->position;
+    camera->target = (Vector2){player->rect.x,player->rect.y};
 }
 
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height)
@@ -627,7 +632,7 @@ void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delt
     static float fractionSpeed = 0.8f;
 
     camera->offset = (Vector2){ width/2.0f, height/2.0f };
-    Vector2 diff = Vector2Subtract(player->position, camera->target);
+    Vector2 diff = Vector2Subtract((Vector2){player->rect.x,player->rect.y}, camera->target);
     float length = Vector2Length(diff);
 
     if (length > minEffectLength)
@@ -644,7 +649,7 @@ void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player,float delta, 
     static float evenOutTarget;
 
     camera->offset = (Vector2){ width/2.0f, height/2.0f };
-    camera->target.x = player->position.x;
+    camera->target.x = player->rect.x;
 
     if (eveningOut)
     {
@@ -671,10 +676,10 @@ void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player,float delta, 
     }
     else
     {
-        if (player->canJump && (player->speed == 0) && (player->position.y != camera->target.y))
+        if (player->canJump && (player->speed == 0) && (player->rect.y != camera->target.y))
         {
             eveningOut = 1;
-            evenOutTarget = player->position.y;
+            evenOutTarget = player->rect.y;
         }
     }
 }
