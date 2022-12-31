@@ -44,6 +44,7 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta);
 void UpdateCameraCenter(Camera2D *camera, Player *player,float delta, int width, int height);
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, float delta, int width, int height);
+void UpdateCameraFree(Camera2D *camera,Player *player, float delta,int width, int height);
 void addObjectRect(objectRect *objectR);
 void addObjectCirc(objectCirc *objectC);
 void deleteObjectRect(objectRect *objectR, int deleteID);
@@ -82,12 +83,6 @@ int main(void)
    
     objectRect objectR[TOTAL_OBJECT];
     objectCirc objectC[TOTAL_OBJECT];
-
-    //debug
-    int mousePosx = 0;
-    int recX = 0;
-    bool collide = false;
-
 
     //selection variable
     bool isSelecting = false;
@@ -157,6 +152,7 @@ int main(void)
         UpdateCameraCenter,
         UpdateCameraCenterSmoothFollow,
         UpdateCameraEvenOutOnLanding,
+        UpdateCameraFree,
     };
 
     int cameraOption = 0;
@@ -166,6 +162,7 @@ int main(void)
         "Follow player center",
         "Follow player center; smoothed",
         "Follow player center horizontally; updateplayer center vertically after landing",
+        "Free Camera"
     };
 
     SetTargetFPS(60);
@@ -271,9 +268,6 @@ int main(void)
             addObjectCirc(objectC);
         }
 
-
-        mousePosx = GetMousePosition().x;
-        recX = objectR[0].rect.x;
 
         Vector2 mousePosition;
         mousePosition.x = (GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x;
@@ -522,16 +516,6 @@ int main(void)
                 }
             }
            
-            //debug
-           
-            DrawText(TextFormat("Integer value: %d", mousePosx), 620, 130, 10, DARKGRAY);
-            DrawText(TextFormat("Integer value: %d", recX), 620, 160, 10, DARKGRAY);
-
-            if(collide)
-            {
-                DrawText(TextFormat("COLLIDE"), 620, 180, 10, DARKGRAY);    
-            }
-
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
@@ -815,4 +799,27 @@ void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player,float delta, 
             evenOutTarget = player->rect.y;
         }
     }
+}
+
+void UpdateCameraFree(Camera2D *camera,Player *player, float delta, int width, int height)
+{
+    
+    int cameraSpeed = 200;
+    if (IsKeyDown(KEY_W))
+    {
+        camera->target.y -= cameraSpeed*delta;
+    } 
+    if (IsKeyDown(KEY_S)) 
+    {
+        camera->target.y += cameraSpeed*delta;
+    }
+    if (IsKeyDown(KEY_A))
+    {
+       camera->target.x -= cameraSpeed*delta;
+    }    
+    if (IsKeyDown(KEY_D))
+    {
+       camera->target.x += cameraSpeed*delta;
+    }  
+
 }
