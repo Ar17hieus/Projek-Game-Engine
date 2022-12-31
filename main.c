@@ -3,7 +3,6 @@
 #include "raymath.h"
 #include "raygui.h"
 
-
 #define G 400
 #define PLAYER_JUMP_SPD 350.0f
 #define PLAYER_HOR_SPD 200.0f
@@ -48,7 +47,7 @@ void UpdateCameraFree(Camera2D *camera,Player *player, float delta,int width, in
 void addObjectRect(objectRect *objectR);
 void addObjectCirc(objectCirc *objectC);
 void deleteObjectRect(objectRect *objectR, int deleteID);
-
+void deleteObjectCirc(objectCirc *objectC,int deleteID);
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
@@ -69,10 +68,10 @@ int main(void)
     Sound biong = LoadSound("resources/smb_jump-small.wav");
     Sound boo = LoadSound("resources/nsmb_mini-mario_jump.wav");
     
-    bool albert = false;
-    bool bong = false;
-    bool cock = false;
-    bool dick = false;
+    bool sound1 = false;
+    bool sound2 = false;
+    bool sound3 = false;
+    bool sound4 = false;
     
 
     Player player = { 0 };
@@ -87,9 +86,11 @@ int main(void)
     //selection variable
     bool isSelecting = false;
     bool isOpenProperty = false;
+    bool isHelpOpen = false;
     int selectedEdit = 0;
     int selectedMove = 0;
-    int selectedType; //0-Rectangle  1-Circle
+    int selectedTypeEdit; //0-Rectangle  1-Circle
+    int selectedTypeMove;
    
 
     //initialize objectR array
@@ -117,25 +118,25 @@ int main(void)
     }
 
     //Level Objects
-    objectR[0].rect = (Rectangle){100,500,1000,100};
+    objectR[0].rect = (Rectangle){100,500,2000,100};
     objectR[0].isExist = true;
     objectR[0].isSelected = false;
     objectR[0].canBeEdited = false;
 
-    objectR[1].rect = (Rectangle){100,0,100,500};
-    objectR[1].isExist = true;
-    objectR[1].isSelected = false;
-    objectR[1].canBeEdited = false;
+    // objectR[1].rect = (Rectangle){100,0,100,500};
+    // objectR[1].isExist = true;
+    // objectR[1].isSelected = false;
+    // objectR[1].canBeEdited = false;
 
-    objectR[2].rect = (Rectangle){1000,0,100,500};
-    objectR[2].isExist = true;
-    objectR[2].isSelected = false;
-    objectR[2].canBeEdited = false;
+    // objectR[2].rect = (Rectangle){1000,0,100,500};
+    // objectR[2].isExist = true;
+    // objectR[2].isSelected = false;
+    // objectR[2].canBeEdited = false;
 
-    objectR[3].rect = (Rectangle){100,0,1000,100};
-    objectR[3].isExist = true;
-    objectR[3].isSelected = false;
-    objectR[3].canBeEdited = false;
+    // objectR[3].rect = (Rectangle){100,0,1000,100};
+    // objectR[3].isExist = true;
+    // objectR[3].isSelected = false;
+    // objectR[3].canBeEdited = false;
 
 
     //Initialize Camera
@@ -155,13 +156,12 @@ int main(void)
         UpdateCameraFree,
     };
 
-    int cameraOption = 0;
-    int cameraUpdatersLength = sizeof(cameraUpdaters)/sizeof(cameraUpdaters[0]);
-
+    int cameraOption = 3;
+    
     char *cameraDescriptions[] = {
-        "Follow player center",
-        "Follow player center; smoothed",
-        "Follow player center horizontally; updateplayer center vertically after landing",
+        "Follow Player",
+        "Follow Player Smooth",
+        "Follow Player Vertical",
         "Free Camera"
     };
 
@@ -192,41 +192,51 @@ int main(void)
             player.rect.y = 280;
         }
 
-        if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1)%cameraUpdatersLength;
-        
-        if (IsKeyDown (KEY_A)) 
+        if (IsKeyPressed(KEY_C))
         {
-            albert = true;
-            bong = false;
-            cock = false;
-            dick = false;
+            if(cameraOption <3)
+            {
+                cameraOption ++;;
+            }
+            else
+            {
+                cameraOption = 0;   
+            }
+        } 
+        
+        if (IsKeyDown (KEY_ONE)) 
+        {
+            sound1 = true;
+            sound2 = false;
+            sound3 = false;
+            sound4 = false;
         }
         
-        if (IsKeyDown (KEY_S)) 
+        if (IsKeyDown (KEY_TWO)) 
         {
-            bong = true;
-            albert = false;
-            cock = false;
-            dick = false;
+            sound2 = true;
+            sound1 = false;
+            sound3 = false;
+            sound4 = false;
         }
         
-        if (IsKeyDown (KEY_D)) 
+        if (IsKeyDown (KEY_THREE)) 
         {
-            cock = true;
-            albert = false;
-            bong = false;
-            dick = false;
+            sound3 = true;
+            sound1 = false;
+            sound2 = false;
+            sound4 = false;
         }
         
-        if (IsKeyDown (KEY_F)) 
+        if (IsKeyDown (KEY_FOUR)) 
         {
-            cock = false;
-            albert = false;
-            bong = false;
-            dick = true;
+            sound3 = false;
+            sound1 = false;
+            sound2 = false;
+            sound4 = true;
         }
         
-        if (albert == true)
+        if (sound1 == true)
         {
             if(IsKeyDown (KEY_SPACE))
             {
@@ -234,7 +244,7 @@ int main(void)
             }
         }
         
-        if(bong == true)
+        if(sound2 == true)
         {
             if(IsKeyDown (KEY_SPACE))
             {
@@ -242,7 +252,7 @@ int main(void)
             }
         }
         
-        if(cock == true)
+        if(sound3 == true)
         {
             if(IsKeyDown (KEY_SPACE))
             {
@@ -250,7 +260,7 @@ int main(void)
             }
         }
         
-        if(dick == true)
+        if(sound4 == true)
         {
             if(IsKeyDown (KEY_SPACE))
             {
@@ -268,7 +278,7 @@ int main(void)
             addObjectCirc(objectC);
         }
 
-
+        // Get True Mouse Position
         Vector2 mousePosition;
         mousePosition.x = (GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x;
         mousePosition.y = (GetMousePosition().y - camera.offset.y)/camera.zoom + camera.target.y;
@@ -288,7 +298,7 @@ int main(void)
                         {
                             selectedMove = i;
                             isSelecting = true;
-                            selectedType = 0;
+                            selectedTypeMove = 0;
                         } 
                     }
 
@@ -299,13 +309,13 @@ int main(void)
                         {
                             selectedMove = i;
                             isSelecting = true; 
-                            selectedType = 1;
+                            selectedTypeMove = 1;
                         } 
                     }
                 }
             }
         }
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && isSelecting)
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         {
             isSelecting = false;     
             objectR[selectedMove].isSelected = false;  
@@ -315,13 +325,13 @@ int main(void)
         //Moving highlighted object
         if(isSelecting && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) 
         {
-            if(selectedType == 0)
+            if(selectedTypeMove == 0)
             {
                 objectR[selectedMove].rect.x = mousePosition.x - objectR[selectedMove].rect.width/2  ;
                 objectR[selectedMove].rect.y = mousePosition.y - objectR[selectedMove].rect.height/2 ;
 
             }
-            else if (selectedType == 1)
+            else if (selectedTypeMove == 1)
             {
                 objectC[selectedMove].center = (Vector2){ mousePosition.x,mousePosition.y};
             } 
@@ -346,7 +356,7 @@ int main(void)
                         selectedEdit = i;
                         objectR[i].isSelected = true;
                         isOpenProperty = true;
-                        selectedType = 0;
+                        selectedTypeEdit = 0;
                         found = true;
                     }
                     else
@@ -362,7 +372,7 @@ int main(void)
                         selectedEdit = i;
                         objectC[i].isSelected = true;
                         isOpenProperty = true;
-                        selectedType = 1;
+                        selectedTypeEdit = 1;
                         found = true;
                     } 
                     else
@@ -376,7 +386,17 @@ int main(void)
         //Delete object
         if((IsKeyPressed(KEY_DELETE)))
         {
-            deleteObjectRect(objectR,selectedEdit);
+            if(selectedTypeEdit == 0 && objectR[selectedEdit].canBeEdited)
+            {
+                deleteObjectRect(objectR,selectedEdit);
+                isOpenProperty = false;
+            }
+            else if(selectedTypeEdit == 1)
+            {
+                deleteObjectCirc(objectC,selectedEdit);
+                isOpenProperty = false;
+            }
+            
         }
         
         //Call update camera function by its pointer
@@ -423,97 +443,152 @@ int main(void)
 
                 }
 
-                //DrawRectangle(0,0,1280,720,GRAY);
+
                 DrawCircle((GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x ,(GetMousePosition().y - camera.offset.y)/camera.zoom +camera.target.y,5,RED);
 
-                //Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40, 40 };
                 DrawRectangleRec(player.rect, RED);
-                
-                //guiTest
-                //DrawRectangle(400, 240, 40, 40, boxColour);
-                
-                //alpha color untuk added Box
-                //boxColour.a = 255;
-
+            
            EndMode2D();
 
             //GUI
-            
-            DrawText("Controls:", 20, 20, 10, BLACK);
-            DrawText("- Right/Left to move", 40, 40, 10, DARKGRAY);
-            DrawText("- Space to jump", 40, 60, 10, DARKGRAY);
-            DrawText("- Mouse Wheel to Zoom in-out, R to reset ", 40, 80, 10, DARKGRAY);
-            DrawText("- C to change camera mode", 40, 100, 10, DARKGRAY);
-            DrawText("Current camera mode:", 20, 120, 10, BLACK);
-            DrawText(cameraDescriptions[cameraOption], 40, 140, 10, DARKGRAY);
-            
-            //Sound
-            DrawText("Sound:", 820,20,10, BLACK);
-            DrawText("Press A for Sound A", 840, 40, 10, DARKGRAY);
-            DrawText("Press S for Sound S", 840, 70, 10, DARKGRAY);
-            DrawText("Press D for Sound D", 840, 100, 10, DARKGRAY);
-            DrawText("Press F for Sound F", 840, 130, 10, DARKGRAY);
-            
-            //Toggle
-            if (albert)
+            if(GuiButton((Rectangle){ 0, 0, 105, 40 }, GuiIconText(ICON_HELP, "Controls")))
             {
-                DrawText("Press A for Sound A", 840, 40, 10, RED);
-            }
-            else if (bong)
-            {
-                DrawText("Press S for Sound S", 840, 70, 10, RED);
-            }
-            else if (cock)
-            {
-                DrawText("Press D for Sound D", 840, 100, 10, RED);
-            }
-            else if (dick)
-            {
-                DrawText("Press F for Sound F", 840, 130, 10, RED);
+                if(isHelpOpen)
+                {
+                    isHelpOpen = false;
+                }
+                else if(!isHelpOpen)
+                {
+                    isHelpOpen = true;
+                }
+
             }
 
+            if(isHelpOpen)
+            {
+                DrawRectangle(0, 40, GetScreenWidth()/4, GetScreenHeight()/3 + 260, Fade(GRAY, 0.3f));
 
+                DrawText("Character:", 5, 55, 25, DARKBLUE);
+                DrawText("[<-][->]    - Move Left/Right", 5, 85, 20, BLUE);
+                DrawText("[SPACE]  - Jump", 5, 110, 20, BLUE);
+                DrawText("[1][2][3][4] - Change Sound", 5, 135, 20, BLUE);
+
+                DrawText("Camera:", 5, 175, 25, PURPLE);
+                DrawText("[C]  - Change Camera ", 5, 205, 20, DARKPURPLE);
+                DrawText("[W][A][S][D]- Move Free Camera ", 5, 235, 20, DARKPURPLE);
+                DrawText("[Mouse Wheel] - Adjust Zoom ", 5, 265, 20, DARKPURPLE);
+
+                DrawText("MISC:", 5, 305, 25, DARKBROWN);
+                DrawText("[MOUSE RIGHT]- Select Object  ", 5, 335, 20, BROWN);
+                DrawText("[MOUSE LEFT]- Move Object ", 5, 365, 20, BROWN);
+                DrawText("[Q] - Add Rectangle ", 5, 395, 20, BROWN);
+                DrawText("[E] - Add Circle ", 5, 425, 20, BROWN);
+                DrawText("[DELETE] - Delete Object ", 5, 455, 20, BROWN);
+                DrawText("[R] - Reset ", 5, 485, 20, BROWN);
+                DrawText("[Q] - Add Rectangle ", 5, 515, 20, BROWN);
+            }
+            
+            
+            DrawText("Control Panels", 1000, 500, 30, BLACK);
+            DrawText("Sounds:", 1000, 550, 20, BLACK);
+            DrawText("1", 1100, 550, 20, DARKGRAY);
+            DrawText("2", 1120, 550, 20, DARKGRAY);
+            DrawText("3", 1140, 550, 20, DARKGRAY);
+            DrawText("4", 1160, 550, 20, DARKGRAY);
+
+            DrawText("Camera:", 1000, 580, 20, BLACK);
+            DrawText(cameraDescriptions[cameraOption], 1100, 583, 15, DARKGRAY);
+
+            if (sound1)
+            {
+                DrawText("1", 1100, 550, 20, RED);
+            }
+            else if (sound2)
+            {
+                DrawText("2", 1120, 550, 20, RED);
+            }
+            else if (sound3)
+            {
+                DrawText("3", 1140, 550, 20, RED);
+            }
+            else if (sound4)
+            {
+                DrawText("4", 1160, 550, 20, RED);
+            }
+
+            DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, GetScreenHeight() - GetScreenHeight()/3, GetScreenWidth()/4, GetScreenHeight()/3, Fade(GRAY, 0.3f));
+            if (GuiButton((Rectangle){ 1060, 630, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Rectangle")))
+            {
+                addObjectRect(objectR);
+            }
+            if (GuiButton((Rectangle){ 1060, 670, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Circle")))
+            {
+                addObjectCirc(objectC);
+            }
             if(isOpenProperty)
             {
-                DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, GetScreenHeight(), Fade(WHITE, 1));
+                DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, 0, GetScreenWidth()/4, 2*GetScreenHeight()/3, Fade(WHITE, 0.3));
+                
+                DrawText("Edit Properties", 1000, 30, 30, BLACK);
+                DrawText("Colours", 1080, 80, 20, BLACK);
+                
+
                 //Set Color
-                 
                 //Rectangle Properties
-                if(selectedType == 0)
+                if(selectedTypeEdit == 0)
                 {
+                    DrawText("Colours", 1080, 80, 20, BLACK);
                    //parametersBox color R
-                    objectR[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectR[selectedEdit].color.r, 0, 255);
+                    objectR[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1025, 100, 200, 20 }, "Red", NULL,  objectR[selectedEdit].color.r, 0, 255);
                 
                     //parametersBox color G 
-                    objectR[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectR[selectedEdit].color.g, 0, 255);
+                    objectR[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1025, 140, 200, 20 }, "Green", NULL, objectR[selectedEdit].color.g, 0, 255);
                     
                     //parametersBox color B 
-                    objectR[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectR[selectedEdit].color.b, 0, 255);
+                    objectR[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1025, 180, 200, 20 }, "Blue", NULL, objectR[selectedEdit].color.b, 0, 255);
 
+                    
                     // //Change Size
-                    objectR[selectedEdit].rect.width = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Width", NULL, objectR[selectedEdit].rect.width, 0, 1000);
-                    objectR[selectedEdit].rect.height = (int)GuiSliderBar((Rectangle){ 1000, 70, 105, 20 }, "Height", NULL, objectR[selectedEdit].rect.height, 0, 1000);
-                }
-                
-                else if (selectedType == 1)
-                {
-                    //parametersBox color R
-                    objectC[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1000, 90, 105, 20 }, "Red", NULL,  objectC[selectedEdit].color.r, 0, 255);
-                
-                    //parametersBox color G 
-                    objectC[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1000, 120, 105, 20 }, "Green", "", objectC[selectedEdit].color.g, 0, 255);
+                    DrawText("Size", 1100, 250, 20, BLACK);
+                    objectR[selectedEdit].rect.width = (int)GuiSliderBar((Rectangle){ 1025, 270, 200, 20 }, "Width", NULL, objectR[selectedEdit].rect.width, 0, 1000);
+                    objectR[selectedEdit].rect.height = (int)GuiSliderBar((Rectangle){ 1025, 310, 200, 20 }, "Height", NULL, objectR[selectedEdit].rect.height, 0, 1000);
                     
-                    //parametersBox color B 
-                    objectC[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1000, 150, 105, 20 }, "Blue", "", objectC[selectedEdit].color.b, 0, 255);
+                    if (GuiButton((Rectangle){ 1080, 380, 105, 30 }, GuiIconText(ICON_BIN, "Delete Object")))
+                    {
+                        deleteObjectRect(objectR,selectedEdit);
+                        isOpenProperty = false;
+                    }
+                }
+                
+                else if (selectedTypeEdit == 1)
+                {
+                    
+                    DrawText("Colours", 1080, 80, 20, BLACK);
 
-                    objectC[selectedEdit].radius = (int)GuiSliderBar((Rectangle){ 1000, 40, 105, 20 }, "Radius", NULL, objectC[selectedEdit].radius, 0, 1000);
+                    //parametersBox color R
+                    objectC[selectedEdit].color.r = (int)GuiSliderBar((Rectangle){ 1025, 100, 200, 20 }, "Red", NULL,  objectC[selectedEdit].color.r, 0, 255);
+
+                    //parametersBox color G 
+                    objectC[selectedEdit].color.g = (int)GuiSliderBar((Rectangle){ 1025, 140, 200, 20 }, "Green", NULL, objectC[selectedEdit].color.g, 0, 255);
+
+                    //parametersBox color B 
+                    objectC[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1025, 180, 200, 20 }, "Blue", NULL, objectC[selectedEdit].color.b, 0, 255);
+
+                    
+                    // //Change Size
+                    DrawText("Size", 1100, 250, 20, BLACK);
+                    objectC[selectedEdit].radius = (int)GuiSliderBar((Rectangle){ 1025, 270, 200, 20 }, "Radius", NULL, objectC[selectedEdit].radius, 0, 500);
+
+                    
+                    if (GuiButton((Rectangle){ 1080, 380, 105, 30 }, GuiIconText(ICON_BIN, "Delete Object")))
+                    {
+                        deleteObjectCirc(objectC,selectedEdit);
+                        isOpenProperty = false;
+                    }
 
                 }
                 
-                if (GuiButton((Rectangle){ 1100, 600, 105, 20 }, GuiIconText(ICON_HAND_POINTER, "ADD Objects")))
-                {
-                    addObjectRect(objectR);
-                }
+                
             }
            
         EndDrawing();
@@ -548,8 +623,8 @@ void addObjectRect(objectRect *objectR)
             oi->isExist = true;
             oi->rect.height = 100;
             oi->rect.width = 100;
-            oi->rect.x = 0;
-            oi->rect.x = 0;
+            oi->rect.x = 100;
+            oi->rect.x = 100;
             oi->isSelected = false;
         } 
         i++;
@@ -592,6 +667,15 @@ void deleteObjectRect(objectRect *objectR,int deleteID)
     objectR[deleteID].rect.x = 0;   
     objectR[deleteID].isSelected = false;
     objectR[deleteID].color = WHITE;
+}
+
+void deleteObjectCirc(objectCirc *objectC,int deleteID)
+{
+    objectC[deleteID].center = (Vector2){0,0};
+    objectC[deleteID].radius = 0;
+    objectC[deleteID].color = WHITE;
+    objectC[deleteID].isExist = false;
+    objectC[deleteID].isSelected = false;    
 }
 
 void UpdatePlayer(Player *player, objectRect *objectR,float delta)
