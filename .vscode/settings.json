@@ -12,5 +12,6 @@
 		"raygui.h": "c",
 		"*.m": "c",
 		"random": "c"
-	}
+	},
+	"C_Cpp.errorSquiggles": "disabled"
 }

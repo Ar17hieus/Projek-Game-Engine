@@ -3,7 +3,7 @@
 #include "raymath.h"
 #include "raygui.h"
 
-#define G 400
+//#define G 400
 #define PLAYER_JUMP_SPD 350.0f
 #define PLAYER_HOR_SPD 200.0f
 #define TOTAL_OBJECT 20
@@ -41,8 +41,8 @@ typedef struct objectCirc
 //----------------------------------------------------------------------------------
 // Module functions declaration
 //----------------------------------------------------------------------------------
-void UpdatePlayer(Player *player, objectRect *objectR,float delta);
-void UpdateRect(objectRect *objectR,float delta, int rectID);
+void UpdatePlayer(Player *player, objectRect *objectR,float delta, int gravity);
+void UpdateRect(objectRect *objectR,float delta, int rectID, int gravity);
 void UpdateCameraCenter(Camera2D *camera, Player *player,float delta, int width, int height);
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, float delta, int width, int height);
@@ -77,7 +77,6 @@ int main(void)
     bool sound3 = false;
     bool sound4 = false;
     
-
     Player player = { 0 };
     player.rect = (Rectangle){400,280,20,20};
 
@@ -91,14 +90,17 @@ int main(void)
     bool isSelecting = false;
     bool isOpenProperty = false;
     bool isHelpOpen = false;
+    bool isFeatureOpen = false;
     int selectedEdit = 0;
     int selectedMove = 0;
     int selectedTypeEdit; //0-Rectangle  1-Circle
     int selectedTypeMove;
+
+    //Gravity Variable
+    int gravity = 400;
    
 
     //initialize objectR array
-
     for(int i = 0; i < TOTAL_OBJECT; i++)
     {
         objectR[i].rect.height = 0;
@@ -166,7 +168,7 @@ int main(void)
         float deltaTime = GetFrameTime();
 
     
-        UpdatePlayer(&player, objectR, deltaTime);
+        UpdatePlayer(&player, objectR, deltaTime,gravity);
 
 
         //Camera Zoom
@@ -226,37 +228,42 @@ int main(void)
             sound4 = true;
         }
         
-        if (sound1 == true)
+        bool canPlay = player.canJump;
+        if (canPlay)
         {
-            if(IsKeyDown (KEY_SPACE))
+            if (sound1 == true)
             {
-                PlaySound (fxWav);
+                if(IsKeyDown (KEY_SPACE))
+                {
+                    PlaySound (fxWav);
+                }
+            }
+            
+            if(sound2 == true)
+            {
+                if(IsKeyDown (KEY_SPACE))
+                {
+                    PlaySound (boing);
+                }
+            }
+            
+            if(sound3 == true)
+            {
+                if(IsKeyDown (KEY_SPACE))
+                {
+                    PlaySound (biong);
+                }
+            }
+            
+            if(sound4 == true)
+            {
+                if(IsKeyDown (KEY_SPACE))
+                {
+                    PlaySound (boo);
+                }
             }
         }
         
-        if(sound2 == true)
-        {
-            if(IsKeyDown (KEY_SPACE))
-            {
-                PlaySound (boing);
-            }
-        }
-        
-        if(sound3 == true)
-        {
-            if(IsKeyDown (KEY_SPACE))
-            {
-                PlaySound (biong);
-            }
-        }
-        
-        if(sound4 == true)
-        {
-            if(IsKeyDown (KEY_SPACE))
-            {
-                PlaySound (boo);
-            }
-        }
         
         //Add objects
         if (IsKeyPressed(KEY_E))
@@ -394,7 +401,7 @@ int main(void)
         {
             if(objectR[i].isExist && objectR[i].haveGravity )
             {
-                UpdateRect(objectR,deltaTime,i);
+                UpdateRect(objectR,deltaTime,i,gravity);
             }
         
         }
@@ -444,9 +451,6 @@ int main(void)
 
                 }
 
-
-                DrawCircle((GetMousePosition().x - camera.offset.x)/camera.zoom + camera.target.x ,(GetMousePosition().y - camera.offset.y)/camera.zoom +camera.target.y,5,RED);
-
                 DrawRectangleRec(player.rect, RED);
             
            EndMode2D();
@@ -454,6 +458,7 @@ int main(void)
             //GUI
             if(GuiButton((Rectangle){ 0, 0, 105, 40 }, GuiIconText(ICON_HELP, "Controls")))
             {
+                isFeatureOpen = false;
                 if(isHelpOpen)
                 {
                     isHelpOpen = false;
@@ -489,6 +494,48 @@ int main(void)
                 DrawText("[Q] - Add Rectangle ", 5, 515, 20, BROWN);
             }
             
+            if(GuiButton((Rectangle){ 115, 0, 105, 40 }, GuiIconText(ICON_HELP, "Features")))
+            {
+                isHelpOpen = false;
+                if(isFeatureOpen)
+                {
+                    isFeatureOpen = false;
+                }
+                else if(!isFeatureOpen)
+                {
+                    isFeatureOpen = true;
+                }
+            }
+
+            if(isFeatureOpen)
+            {
+                DrawRectangle(0, 40, GetScreenWidth()/4 + 340, GetScreenHeight()/3 + 260, Fade(GRAY, 0.3f));
+
+                DrawText("Camera:", 5, 55, 25, DARKBLUE);
+                DrawText("- Change Between 4 type of camera", 5, 85, 20, BLUE);
+
+
+                DrawText("Sound", 5, 115, 25, DARKGRAY);
+                DrawText("- Player's jump sound can be changed with 4 type of option", 5, 135, 20, GRAY);
+
+                DrawText("Objects:", 5, 175, 25, PURPLE);
+                DrawText("- Rectangle and Circle Shape can be added as objects", 5, 205, 20, DARKPURPLE);
+                DrawText("- Object's properties can be changed using property panels", 5, 235, 20, DARKPURPLE);
+                DrawText("- Object can be removed/deleted ", 5, 265, 20, DARKPURPLE);
+                DrawText("- Object can be moved using mouse ", 5, 295, 20, DARKPURPLE);
+
+                
+                DrawText("Collision", 5, 325, 25, DARKBROWN);
+                DrawText("- Player will collide with rectangle objects", 5, 350, 20, BROWN);
+                DrawText("- Rectangle can collide with each other (if gravity is enabled) ", 5, 370, 20, BROWN);
+
+
+                DrawText("Gravity", 5, 405, 25, GREEN);
+                DrawText("- Gravity can be adjusted using slider", 5, 435, 20, DARKGREEN);
+                DrawText("- Rectangle object can be affected by gravity (if enabled)", 5, 465, 20, DARKGREEN);
+            }
+
+
             
             DrawText("Control Panels", 1000, 500, 30, BLACK);
             DrawText("Sounds:", 1000, 550, 20, BLACK);
@@ -517,12 +564,14 @@ int main(void)
                 DrawText("4", 1160, 550, 20, RED);
             }
 
+            gravity = (int)GuiSlider((Rectangle){ 1060, 610, 105, 20 }, "Gravity: ", NULL,  gravity, 0, 800);
+
             DrawRectangle(GetScreenWidth() -  GetScreenWidth()/4, GetScreenHeight() - GetScreenHeight()/3, GetScreenWidth()/4, GetScreenHeight()/3, Fade(GRAY, 0.3f));
-            if (GuiButton((Rectangle){ 1060, 630, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Rectangle")))
+            if (GuiButton((Rectangle){ 1060, 640, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Rectangle")))
             {
                 addObjectRect(objectR);
             }
-            if (GuiButton((Rectangle){ 1060, 670, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Circle")))
+            if (GuiButton((Rectangle){ 1060, 680, 105, 30 }, GuiIconText(ICON_FILE_ADD, "ADD Circle")))
             {
                 addObjectCirc(objectC);
             }
@@ -679,7 +728,7 @@ void deleteObjectCirc(objectCirc *objectC,int deleteID)
     objectC[deleteID].isSelected = false;    
 }
 
-void UpdatePlayer(Player *player, objectRect *objectR,float delta)
+void UpdatePlayer(Player *player, objectRect *objectR,float delta ,int gravity)
 {
     if (IsKeyDown(KEY_LEFT))
     {
@@ -729,14 +778,14 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
     if (!hitObstacle)
     {
         player->rect.y += player->speed*delta;
-        player->speed += G*delta;
+        player->speed += gravity*delta;
         player->canJump = false;
 
     }
     else player->canJump = true;
 }
 
-void UpdateRect(objectRect *objectR, float delta ,int rectID)
+void UpdateRect(objectRect *objectR, float delta ,int rectID, int gravity)
 {
     bool hitObstacle = false;
 
@@ -759,7 +808,7 @@ void UpdateRect(objectRect *objectR, float delta ,int rectID)
     if (!hitObstacle)
     {
         objectR[rectID].rect.y +=  objectR[rectID].speed*delta;
-        objectR[rectID].speed += G*delta;    
+        objectR[rectID].speed += gravity*delta;    
     }
 }
 
