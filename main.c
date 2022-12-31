@@ -23,6 +23,8 @@ typedef struct objectRect
     bool isExist;
     bool isSelected;
     bool canBeEdited;
+    bool haveGravity;
+    float speed;
 
 } objectRect;
 
@@ -40,6 +42,7 @@ typedef struct objectCirc
 // Module functions declaration
 //----------------------------------------------------------------------------------
 void UpdatePlayer(Player *player, objectRect *objectR,float delta);
+void UpdateRect(objectRect *objectR,float delta, int rectID);
 void UpdateCameraCenter(Camera2D *camera, Player *player,float delta, int width, int height);
 void UpdateCameraCenterSmoothFollow(Camera2D *camera, Player *player, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D *camera, Player *player, float delta, int width, int height);
@@ -48,6 +51,7 @@ void addObjectRect(objectRect *objectR);
 void addObjectCirc(objectCirc *objectC);
 void deleteObjectRect(objectRect *objectR, int deleteID);
 void deleteObjectCirc(objectCirc *objectC,int deleteID);
+
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
@@ -105,6 +109,8 @@ int main(void)
         objectR[i].color = WHITE;
         objectR[i].isExist = false;
         objectR[i].canBeEdited = true;
+        objectR[i].speed = 0;
+        objectR[i].haveGravity = false;
     }
 
     //initialize ObjectC array
@@ -122,22 +128,6 @@ int main(void)
     objectR[0].isExist = true;
     objectR[0].isSelected = false;
     objectR[0].canBeEdited = false;
-
-    // objectR[1].rect = (Rectangle){100,0,100,500};
-    // objectR[1].isExist = true;
-    // objectR[1].isSelected = false;
-    // objectR[1].canBeEdited = false;
-
-    // objectR[2].rect = (Rectangle){1000,0,100,500};
-    // objectR[2].isExist = true;
-    // objectR[2].isSelected = false;
-    // objectR[2].canBeEdited = false;
-
-    // objectR[3].rect = (Rectangle){100,0,1000,100};
-    // objectR[3].isExist = true;
-    // objectR[3].isSelected = false;
-    // objectR[3].canBeEdited = false;
-
 
     //Initialize Camera
     Camera2D camera = { 0 };
@@ -399,6 +389,17 @@ int main(void)
             
         }
         
+        //Update Rect
+        for(int i = 0; i <TOTAL_OBJECT ; i++ )
+        {
+            if(objectR[i].isExist && objectR[i].haveGravity )
+            {
+                UpdateRect(objectR,deltaTime,i);
+            }
+        
+        }
+
+
         //Call update camera function by its pointer
         cameraUpdaters[cameraOption](&camera, &player, deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
@@ -548,11 +549,13 @@ int main(void)
                     objectR[selectedEdit].color.b = (int)GuiSliderBar((Rectangle){ 1025, 180, 200, 20 }, "Blue", NULL, objectR[selectedEdit].color.b, 0, 255);
 
                     
-                    // //Change Size
+                    //Change Size
                     DrawText("Size", 1100, 250, 20, BLACK);
                     objectR[selectedEdit].rect.width = (int)GuiSliderBar((Rectangle){ 1025, 270, 200, 20 }, "Width", NULL, objectR[selectedEdit].rect.width, 0, 1000);
                     objectR[selectedEdit].rect.height = (int)GuiSliderBar((Rectangle){ 1025, 310, 200, 20 }, "Height", NULL, objectR[selectedEdit].rect.height, 0, 1000);
                     
+                    objectR[selectedEdit].haveGravity =  GuiCheckBox((Rectangle){ 1025, 340, 20, 20 }, "Enable Gravity", objectR[selectedEdit].haveGravity);
+
                     if (GuiButton((Rectangle){ 1080, 380, 105, 30 }, GuiIconText(ICON_BIN, "Delete Object")))
                     {
                         deleteObjectRect(objectR,selectedEdit);
@@ -587,8 +590,6 @@ int main(void)
                     }
 
                 }
-                
-                
             }
            
         EndDrawing();
@@ -680,8 +681,6 @@ void deleteObjectCirc(objectCirc *objectC,int deleteID)
 
 void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 {
-    
-
     if (IsKeyDown(KEY_LEFT))
     {
         player->rect.x = player->rect.x - PLAYER_HOR_SPD*delta;
@@ -696,15 +695,15 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
         player->canJump = false;
     }
 
-
+    
     int hitObstacle = 0;
     for (int i = 0; i < TOTAL_OBJECT; i++)
     {
+        
         objectRect *oi = objectR + i;
         if(CheckCollisionRecs(oi->rect,player->rect))
         {
             hitObstacle = 1;
-            
             player->speed = 0.0f;
 
             //Up Collision
@@ -713,35 +712,18 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
                 player->rect.y = oi->rect.y- player->rect.height;
             }
 
-            // if(player->rect.y + player->rect.height > oi->rect.height)
-            // {
-            //     player->position.y =  oi->rect.y - player->rect.height;
-            // }
-            // else if((player->rect.y < oi->rect.y + oi->rect.height) && !(oi->rect.x > player->rect.x) && !(oi->rect.x - oi->rect.width < player->rect.x))
-            // {
-            //     //player->position.y = player->position.y - (oi->rect.y + oi->rect.height);
-            //     player->position.y = (oi->rect.y + oi->rect.height);
-            //     //player->speed = 0;
-            // }
-
             //Left Collision
-            else if(oi->rect.x < player->rect.x)
+            else if(oi->rect.x > player->rect.x)
             {
-                player->rect.x = oi->rect.x - player->rect.width;
-                
+                player->rect.x = oi->rect.x - player->rect.width;   
             }
-            // else if(player->rect.x < oi->rect.x + oi->rect.width)
-            // {
-            //     player->position.x = oi->rect.x + oi->rect.width;
-            // }
-
+         
             //Right Collision
             else if(oi->rect.x - oi->rect.width < player->rect.x)
             {
-                player->rect.x = (oi->rect.x + oi->rect.width) + 1 ;
+                player->rect.x = (oi->rect.x + oi->rect.width) ;
             }
-            
-            
+
         }
     } 
     if (!hitObstacle)
@@ -752,73 +734,34 @@ void UpdatePlayer(Player *player, objectRect *objectR,float delta)
 
     }
     else player->canJump = true;
-
-
-   // player->rect=(Rectangle){player->position.x,player->position.y,10,10};
-
-    // int hitObstacle = 0;
-    // for (int i = 0; i < envItemsLength; i++)
-    // {
-    //     EnvItem *ei = envItems + i;
-    //     Vector2 *p = &(player->position);
-    //     if (ei->blocking &&
-    //         ei->rect.x <= p->x &&
-    //         ei->rect.x + ei->rect.width >= p->x &&
-    //         ei->rect.y >= p->y &&
-    //         ei->rect.y <= p->y + player->speed*delta)
-    //     {
-    //         hitObstacle = 1;
-    //         player->speed = 0.0f;
-    //         p->y = ei->rect.y;
-    //     }
-    // }
-
-    // if (!hitObstacle)
-    // {
-    //     player->position.y += player->speed*delta;
-    //     player->speed += G*delta;
-    //     player->canJump = false;
-    // }
-    // else player->canJump = true;
-
-    
 }
 
-// void UpdatePlayer(Player *player, EnvItem *envItems, int envItemsLength, float delta)
-// {
-//     if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD*delta;
-//     if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD*delta;
-//     if (IsKeyDown(KEY_SPACE) && player->canJump)
-//     {
-//         player->speed = -PLAYER_JUMP_SPD;
-//         player->canJump = false;
-//     }
+void UpdateRect(objectRect *objectR, float delta ,int rectID)
+{
+    bool hitObstacle = false;
 
-//     int hitObstacle = 0;
-//     for (int i = 0; i < envItemsLength; i++)
-//     {
-//         EnvItem *ei = envItems + i;
-//         Vector2 *p = &(player->position);
-//         if (ei->blocking &&
-//             ei->rect.x <= p->x &&
-//             ei->rect.x + ei->rect.width >= p->x &&
-//             ei->rect.y >= p->y &&
-//             ei->rect.y <= p->y + player->speed*delta)
-//         {
-//             hitObstacle = 1;
-//             player->speed = 0.0f;
-//             p->y = ei->rect.y;
-//         }
-//     }
-
-//     if (!hitObstacle)
-//     {
-//         player->position.y += player->speed*delta;
-//         player->speed += G*delta;
-//         player->canJump = false;
-//     }
-//     else player->canJump = true;
-// }
+    for (int i = 0; i < TOTAL_OBJECT; i++)
+    {
+        objectRect *oi = objectR + i;
+        if(CheckCollisionRecs(oi->rect,objectR[rectID].rect))
+        {
+            //Up Collision
+            if(oi->rect.y > objectR[rectID].rect.y)
+            {
+                objectR[rectID].rect.y = oi->rect.y- objectR[rectID].rect.height;
+                
+                hitObstacle = true;
+                objectR[rectID].speed = 0;
+            }
+        }
+    } 
+    
+    if (!hitObstacle)
+    {
+        objectR[rectID].rect.y +=  objectR[rectID].speed*delta;
+        objectR[rectID].speed += G*delta;    
+    }
+}
 
 void UpdateCameraCenter(Camera2D *camera, Player *player, float delta, int width, int height)
 {
